@@ -1,0 +1,16 @@
+/DatagramSocketAddress.class
+/DomainSocketAddress.class
+/DomainSocketChannel.class
+/DomainSocketChannelConfig.class
+/DomainSocketReadMode.class
+/Errors$NativeConnectException.class
+/Errors$NativeIoException.class
+/Errors.class
+/ErrorsStaticallyReferencedJniMethods.class
+/FileDescriptor.class
+/NativeInetAddress.class
+/PeerCredentials.class
+/ServerDomainSocketChannel.class
+/Socket.class
+/UnixChannel.class
+/package-info.class

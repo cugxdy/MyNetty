@@ -1,0 +1,17 @@
+/AbstractInternalLogger.class
+/CommonsLogger.class
+/CommonsLoggerFactory.class
+/FormattingTuple.class
+/InternalLogLevel.class
+/InternalLogger.class
+/InternalLoggerFactory.class
+/JdkLogger.class
+/JdkLoggerFactory.class
+/Log4J2Logger.class
+/Log4J2LoggerFactory.class
+/Log4JLogger.class
+/Log4JLoggerFactory.class
+/MessageFormatter.class
+/Slf4JLogger.class
+/Slf4JLoggerFactory.class
+/package-info.class

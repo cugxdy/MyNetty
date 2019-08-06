@@ -1,0 +1,13 @@
+/HAProxyCommand.class
+/HAProxyConstants.class
+/HAProxyMessage.class
+/HAProxyMessageDecoder.class
+/HAProxyProtocolException.class
+/HAProxyProtocolVersion.class
+/HAProxyProxiedProtocol$AddressFamily.class
+/HAProxyProxiedProtocol$TransportProtocol.class
+/HAProxyProxiedProtocol.class
+/HAProxySSLTLV.class
+/HAProxyTLV$Type.class
+/HAProxyTLV.class
+/package-info.class

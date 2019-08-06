@@ -1,0 +1,16 @@
+/ChannelBufferByteInput.class
+/ChannelBufferByteOutput.class
+/CompatibleMarshallingDecoder.class
+/CompatibleMarshallingEncoder.class
+/ContextBoundUnmarshallerProvider.class
+/DefaultMarshallerProvider.class
+/DefaultUnmarshallerProvider.class
+/LimitingByteInput$TooBigObjectException.class
+/LimitingByteInput.class
+/MarshallerProvider.class
+/MarshallingDecoder.class
+/MarshallingEncoder.class
+/ThreadLocalMarshallerProvider.class
+/ThreadLocalUnmarshallerProvider.class
+/UnmarshallerProvider.class
+/package-info.class

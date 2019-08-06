@@ -1,0 +1,16 @@
+/ChannelInputShutdownEvent.class
+/ChannelOutputShutdownEvent.class
+/ChannelOutputShutdownException.class
+/DatagramChannel.class
+/DatagramChannelConfig.class
+/DatagramPacket.class
+/DefaultDatagramChannelConfig.class
+/DefaultServerSocketChannelConfig.class
+/DefaultSocketChannelConfig.class
+/DuplexChannel.class
+/InternetProtocolFamily.class
+/ServerSocketChannel.class
+/ServerSocketChannelConfig.class
+/SocketChannel.class
+/SocketChannelConfig.class
+/package-info.class
