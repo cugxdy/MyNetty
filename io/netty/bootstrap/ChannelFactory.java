@@ -26,6 +26,6 @@ public interface ChannelFactory<T extends Channel> {
     /**
      * Creates a new channel.
      */
-	// 用于生成Socket的接口
+	// 用于生成Socket的接口(以反射形式去生成Channel对象)
     T newChannel();
 }
