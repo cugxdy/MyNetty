@@ -90,7 +90,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         this.ch = ch;
         // 设置accept/read/write状态(read)
         this.readInterestOp = readInterestOp;
-        try {
+        try { 
         	// 设置非阻塞模式
             ch.configureBlocking(false);
         } catch (IOException e) {
@@ -197,6 +197,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             if (!key.isValid()) {
                 return;
             }
+            
+            // 位运算清除标志位
             int interestOps = key.interestOps();
             // 判断当前网络操作位是否存在字段值
             if ((interestOps & readInterestOp) != 0) {
@@ -205,6 +207,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 key.interestOps(interestOps & ~readInterestOp);
             }
         }
+        
 
         @Override// 获取SocketChannel对象
         public final SelectableChannel ch() {
@@ -229,6 +232,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 boolean wasActive = isActive();
                 // 进行连接操作
                 if (doConnect(remoteAddress, localAddress)) {
+                	// 触发连接请求
                     fulfillConnectPromise(promise, wasActive);
                 } else {
                     connectPromise = promise;
@@ -241,7 +245,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // 根据连接超时时间设置定时任务,超时时间到之后触发检验,如果发现连接并没有完成,则关闭连接句柄
                     // 释放资源,设置异常堆栈并发起注册
                     if (connectTimeoutMillis > 0) {
-                    	// 创建定时任务并添加至任务队列中
+                    	// 创建定时任务并添加至任务队列中 
+                    	// 
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
                             @Override
                             public void run() {
@@ -306,6 +311,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
 
             // If a user cancelled the connection attempt, close the channel, which is followed by channelInactive().
+            // 用户撤销连接请求
             if (!promiseSet) {
             	// 关闭SocketChannel
                 close(voidPromise());
@@ -352,7 +358,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             }
         }
 
-        @Override
+        @Override // 刷新操作
         protected final void flush0() {
             // Flush immediately only when there's no pending flush.
             // If there's a pending flush operation, event loop will call forceFlush() later,
@@ -438,6 +444,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * Connect to the remote peer
      */
+    // 连接函数
     protected abstract boolean doConnect(SocketAddress remoteAddress, SocketAddress localAddress) throws Exception;
 
     /**

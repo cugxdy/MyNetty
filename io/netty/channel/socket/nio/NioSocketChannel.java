@@ -76,6 +76,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     /**
      * Create a new instance
      */
+    // 由SelectorProvider创建SocketChannel对象
     public NioSocketChannel() {
     	// 创建NioSocketChannel实例
         this(newSocket(DEFAULT_SELECTOR_PROVIDER));
@@ -109,7 +110,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         config = new NioSocketChannelConfig(this, socket.socket());
     }
 
-    @Override// 获取父ServerSocketChannel对象
+    @Override// 获取父ServerSocketChannel对象(服务端)
     public ServerSocketChannel parent() {
         return (ServerSocketChannel) super.parent();
     }
@@ -135,8 +136,9 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         // 判断是否处于打开状态中或者处于连接状态中
         return ch.isOpen() && ch.isConnected();
     }
+    
 
-    @Override// 是否关闭状态下
+    @Override// 输入是否处于关闭状态下
     public boolean isInputShutdown() {
         return super.isInputShutdown();
     }
@@ -174,7 +176,9 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
     @Override // 关闭输出流
     public ChannelFuture shutdownOutput(final ChannelPromise promise) {
-        final EventLoop loop = eventLoop();
+        // 获取Channel对象所在的executor对象
+    	final EventLoop loop = eventLoop();
+        
         if (loop.inEventLoop()) {
         	// 返回unsafe对象,执行shutdownOutput(promise)方法
             ((AbstractUnsafe) unsafe()).shutdownOutput(promise);
@@ -190,7 +194,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         return promise;
     }
 
-    @Override
+    @Override // 从底层Socket中获取本地服务地址
     protected SocketAddress localAddress0() {
     	// 依据socket获取SocketAddress地址
         return javaChannel().socket().getLocalSocketAddress();
@@ -207,6 +211,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         doBind0(localAddress);
     }
 
+    // 绑定本地服务器地址对象
     private void doBind0(SocketAddress localAddress) throws Exception {
         if (PlatformDependent.javaVersion() >= 7) {
         	// Socket绑定端口号
@@ -278,7 +283,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         return region.transferTo(javaChannel(), position);
     }
 
-    @Override// 向SocketChannel写入字节
+    @Override// 向SocketChannel写入字节(向网络中发送数据)
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         for (;;) {
         	// 获取待发送的ByteBuf个数
@@ -326,6 +331,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                             setOpWrite = true;
                             break;
                         }
+                        
                         // 减去已写字节数
                         expectedWrittenBytes -= localWrittenBytes;
                         // 记录已写字节数
@@ -348,6 +354,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                             setOpWrite = true;
                             break;
                         }
+                        
                         // 记录剩余待写的字节数
                         expectedWrittenBytes -= localWrittenBytes;
                         // 记录已写字节数
@@ -367,7 +374,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
             if (!done) {
                 // Did not write all buffers completely.
-            	// 处理写半包标识
+            	// 将对应SelectionKey操作位设置为OP-WRITE状态
                 incompleteWrite(setOpWrite);
                 break;
             }
@@ -383,6 +390,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
         @Override
         protected Executor prepareToClose() {
             try {
+            	// 返回全局处理器
                 if (javaChannel().isOpen() && config().getSoLinger() > 0) {
                     // We need to cancel this key of the channel so we may not end up in a eventloop spin
                     // because we try to read or write until the actual close happens which may be later due
@@ -406,7 +414,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             super(channel, javaSocket); // -->DefaultSocketChannelConfig类
         }
 
-        @Override
+        @Override // 设置属性值
         protected void autoReadCleared() {
             setReadPending(false);
         }
