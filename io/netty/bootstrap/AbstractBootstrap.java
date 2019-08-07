@@ -162,6 +162,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     /**
      * @see #localAddress(SocketAddress)
      */
+    // 设置本地地址服务
     public B localAddress(int inetPort) {
     	// 创建InetSocketAddress对象
         return localAddress(new InetSocketAddress(inetPort));
@@ -185,6 +186,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they got
      * created. Use a value of {@code null} to remove a previous set {@link ChannelOption}.
      */
+    // 设置属性值
     public <T> B option(ChannelOption<T> option, T value) {
     	// 空指针异常
         if (option == null) {
@@ -209,6 +211,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Allow to specify an initial attribute of the newly created {@link Channel}.  If the {@code value} is
      * {@code null}, the attribute of the specified {@code key} is removed.
      */
+    // 设置attr属性值
     public <T> B attr(AttributeKey<T> key, T value) {
         if (key == null) {
             throw new NullPointerException("key");
@@ -246,7 +249,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * multiple {@link Channel}s with similar settings.  Please note that this method does not clone the
      * {@link EventLoopGroup} deeply but shallowly, making the group a shared resource.
      */
-    // 由子类实现
+    // 模板模式
     @Override
     @SuppressWarnings("CloneDoesntDeclareCloneNotSupportedException")
     public abstract B clone();
@@ -546,6 +549,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return buf.toString();
     }
 
+    // 工厂模式(根据Class类型去生成Channel对象)
     private static final class BootstrapChannelFactory<T extends Channel> implements ChannelFactory<T> {
         // Channel工厂类
     	private final Class<? extends T> clazz;
@@ -558,7 +562,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         @Override
         public T newChannel() {
             try {
-            	// 通过构造器生成实例对象
+            	// 通过无参构造器生成实例对象
                 return clazz.getConstructor().newInstance();
             } catch (Throwable t) {
                 throw new ChannelException("Unable to create Channel from class " + clazz, t);
