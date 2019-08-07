@@ -53,7 +53,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         super(parent, ch, SelectionKey.OP_READ);// --> AbstractNioChannel
     }
 
-    @Override
+    @Override // 创建NioByteUnsafe对象
     protected AbstractNioUnsafe newUnsafe() {
         return new NioByteUnsafe();
     }
@@ -61,25 +61,27 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     protected class NioByteUnsafe extends AbstractNioUnsafe {
         private RecvByteBufAllocator.Handle allocHandle;
 
-        // 关闭读操作
+        // close Channel对象Input流
         private void closeOnRead(ChannelPipeline pipeline) {
             SelectionKey key = selectionKey();
             // 禁用输入流
             setInputShutdown();
             // 判断SocketChannel是否处于打开状态中
             if (isOpen()) {
+            	// 是否处于自动化处理中
                 if (Boolean.TRUE.equals(config().getOption(ChannelOption.ALLOW_HALF_CLOSURE))) {
                 	// 取消readInterestOp网络操作位
                     key.interestOps(key.interestOps() & ~readInterestOp);
-                    // 触发相应事件
+                    // 触发用户相应事件
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
+                	// 调用AbstractChannel中的Close方法
                     close(voidPromise());
                 }
             }
         }
 
-        // 处理读异常
+        // 在从网络中读取字节时抛出异常时的处理程序
         private void handleReadException(ChannelPipeline pipeline,
                                          ByteBuf byteBuf, Throwable cause, boolean close) {
             if (byteBuf != null) {
@@ -94,10 +96,12 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     byteBuf.release();
                 }
             }
+            
             // 触发读完成事件
             pipeline.fireChannelReadComplete();
             // 触发异常事件
             pipeline.fireExceptionCaught(cause);
+            
             if (close || cause instanceof IOException) {
                 closeOnRead(pipeline);
             }
@@ -120,6 +124,8 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             // 每次允许读取的最大字节数
             final int maxMessagesPerRead = config.getMaxMessagesPerRead();
             
+            
+            // 设置内存分配器
             RecvByteBufAllocator.Handle allocHandle = this.allocHandle;
             if (allocHandle == null) {
                 this.allocHandle = allocHandle = config.getRecvByteBufAllocator().newHandle();
@@ -138,6 +144,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     
                     // 可写字节数
                     int writable = byteBuf.writableBytes();
+                    
                     // 接收缓存区byteBuf分配完成后,进行消息的异步读取
                     int localReadAmount = doReadBytes(byteBuf);
                     
@@ -149,7 +156,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         close = localReadAmount < 0;
                         if (close) {
                             // There is nothing left to read as we received an EOF.
-                        	// 关闭连接,释放句柄资源
+                        	// 没有数据可读
                             setReadPending(false);
                         }
                         // 中断循环
@@ -159,6 +166,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         readPendingReset = true;
                         setReadPending(false);
                     }
+                    
                     // 当使用半包处理机制,ChannelRead与完整信息是一一对应关系
                     pipeline.fireChannelRead(byteBuf);
                     // 接收缓存区置为空
@@ -232,7 +240,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 return;
             }
 
-            // 是否为ByteBuf类型
+            // 判断是否为ByteBuf类型
             if (msg instanceof ByteBuf) {
             	
                 ByteBuf buf = (ByteBuf) msg;
@@ -252,6 +260,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 	// 从Channel配置对象中获取循环发送次数,防止线程假死
                     writeSpinCount = config().getWriteSpinCount();
                 }
+                
                 for (int i = writeSpinCount - 1; i >= 0; i --) {
                 	// 调用doWriteBytes进行消息发送
                     int localFlushedAmount = doWriteBytes(buf);
@@ -270,6 +279,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                         break;
                     }
                 }
+                
                 // 更新发送进度消息
                 in.progress(flushedAmount);
                 
@@ -280,6 +290,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     // Break the loop and so incompleteWrite(...) is called.
                     break;
                 }
+            // 判断是否为文件类型
             } else if (msg instanceof FileRegion) {
                 FileRegion region = (FileRegion) msg;
                 boolean done = region.transfered() >= region.count();
@@ -318,18 +329,19 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 throw new Error();
             }
         }
+        
         // 处理半包发送任务
         incompleteWrite(setOpWrite);
     }
 
-    @Override// 过滤输出消息
+    @Override// 建立基于堆外内存的消息
     protected final Object filterOutboundMessage(Object msg) {
         if (msg instanceof ByteBuf) {
             ByteBuf buf = (ByteBuf) msg;
+            // 判断是否为堆外内存
             if (buf.isDirect()) {
                 return msg;
             }
-
             // 将输出msg转换成Direct类型的
             return newDirectBuffer(buf);
         }
@@ -348,7 +360,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         // Did not write completely.
     	// 判断是否需要设置写半包标识
         if (setOpWrite) {
-            setOpWrite();
+            setOpWrite(); // 设置selectKey标识位为OP_WRITE;
         } else {
             // Schedule flush again later so other tasks can be picked up in the meantime
         	// 封装成任务添加至任务队列中去执行
@@ -388,6 +400,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     // 写数据由子类实现
     protected abstract int doWriteBytes(ByteBuf buf) throws Exception;
 
+    
     protected final void setOpWrite() {
     	// 或获取SelectionKey字段
         final SelectionKey key = selectionKey();
@@ -398,6 +411,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         if (!key.isValid()) {
             return;
         }
+        
         final int interestOps = key.interestOps();
         if ((interestOps & SelectionKey.OP_WRITE) == 0) {
         	// 将SelectionKey设置为可写的
@@ -405,6 +419,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         }
     }
 
+    // 清空写操作位
     protected final void clearOpWrite() {
     	// 取出当前selectionKey网络操作位
         final SelectionKey key = selectionKey();
