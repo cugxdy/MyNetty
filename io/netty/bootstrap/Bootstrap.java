@@ -35,7 +35,7 @@ import java.util.Map.Entry;
 /**
  * A {@link Bootstrap} that makes it easy to bootstrap a {@link Channel} to use
  * for clients.
- *
+ * 
  * <p>The {@link #bind()} methods are useful in combination with connectionless transports such as datagram (UDP).
  * For regular TCP connections, please use the provided {@link #connect()} methods.</p>
  */
@@ -48,6 +48,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     public Bootstrap() { }
 
+    // 私有构造服务器
     private Bootstrap(Bootstrap bootstrap) {
         super(bootstrap); // 跳转至AbstractBootstrap类
         remoteAddress = bootstrap.remoteAddress;
@@ -87,6 +88,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     public ChannelFuture connect() {
     	// 检验相应的字段group|channelFactory是否为空
         validate();
+        // 需要连接的地址
         SocketAddress remoteAddress = this.remoteAddress;
         // remoteAddress不为空时
         if (remoteAddress == null) {
@@ -129,6 +131,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
     /**
      * Connect a {@link Channel} to the remote peer.
      */
+    // 连接远端服务器(作为客户端)
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
         if (remoteAddress == null) {
             throw new NullPointerException("remoteAddress");
@@ -156,7 +159,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         if (regFuture.isDone()) {
             doConnect0(regFuture, channel, remoteAddress, localAddress, promise);
         } else {
-        	// 添加监视器
+        	// 添加监视器 (观察者模式)
             regFuture.addListener(new ChannelFutureListener() {
                 @Override // 操作完成后调用该方法
                 public void operationComplete(ChannelFuture future) throws Exception {
