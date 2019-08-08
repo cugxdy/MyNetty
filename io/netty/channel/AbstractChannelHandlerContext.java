@@ -49,16 +49,19 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
      */
     // 处于Add进行中
     private static final int ADD_PENDING = 1;
+    
     /**
      * {@link ChannelHandler#handlerAdded(ChannelHandlerContext)} was called.
      */
     // Add完成时
     private static final int ADD_COMPLETE = 2;
+    
     /**
      * {@link ChannelHandler#handlerRemoved(ChannelHandlerContext)} was called.
      */
     // Remove完成时
     private static final int REMOVE_COMPLETE = 3;
+    
     /**
      * Neither {@link ChannelHandler#handlerAdded(ChannelHandlerContext)}
      * nor {@link ChannelHandler#handlerRemoved(ChannelHandlerContext)} was called.
@@ -84,16 +87,23 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
     // child executor.
     // 线程执行器
     final EventExecutor executor;
+    
     private ChannelFuture succeededFuture;
 
     // Lazily instantiated tasks used to trigger events to a handler with different executor.
     // There is no need to make this volatile as at worse it will just create a few more instances then needed.
+    // 读完成调用任务
     private Runnable invokeChannelReadCompleteTask;
+    
     private Runnable invokeReadTask;
+    
+    // 读能力发生变化任务
     private Runnable invokeChannelWritableStateChangedTask;
+    
+    // 刷新任务
     private Runnable invokeFlushTask;
 
-    // hanlder状态
+    // hanlder状态(初始状态为INIT)
     private volatile int handlerState = INIT;
 
     AbstractChannelHandlerContext(DefaultChannelPipeline pipeline, EventExecutor executor, String name,
@@ -102,6 +112,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         this.name = ObjectUtil.checkNotNull(name, "name");
         // 设置DefaultChannelPipeline引用
         this.pipeline = pipeline; //赋值pipeline(private final DefaultChannelPipeline pipeline)
+        
         // DefaultChannelPipeline 持有Channel的引用,线程执行器
         this.executor = executor;
         
@@ -127,6 +138,8 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return channel().config().getAllocator();
     }
 
+    // 一种是EventLoop执行器
+    // User提供的线程执行器DefaultEventExcutorGroup
     @Override// 获取线程执行器
     public EventExecutor executor() {
     	// executor为空时,获取Channel所属的eventLoop
@@ -142,13 +155,14 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return name;
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelRegistered事件
     public ChannelHandlerContext fireChannelRegistered() {
     	// 执行invokeChannelRegistere静态方法(Decoder)
         invokeChannelRegistered(findContextInbound());
         return this;
     }
 
+    // 当Channel注册之后这个是调用ChannelRegistered的起始点
     static void invokeChannelRegistered(final AbstractChannelHandlerContext next) {
         EventExecutor executor = next.executor();
         
@@ -184,7 +198,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelUnregistered事件
     public ChannelHandlerContext fireChannelUnregistered() {
     	// 执行invokeChannelUnregistered静态方法(Decoder)
         invokeChannelUnregistered(findContextInbound());
@@ -208,6 +222,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
+    // 执行ChannelUnregistered事件
     private void invokeChannelUnregistered() {
     	// 执行 Context对应的 handler的 channelUnregistered方法
         if (invokeHandler()) {
@@ -225,7 +240,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelActive事件
     public ChannelHandlerContext fireChannelActive() {
     	// 执行invokeChannelActive静态方法(Decoder)
         invokeChannelActive(findContextInbound());
@@ -266,7 +281,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelInactive事件
     public ChannelHandlerContext fireChannelInactive() {
     	// 执行invokeChannelInactive静态方法(Decoder)
         invokeChannelInactive(findContextInbound());
@@ -307,7 +322,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override// 执行invokeExceptionCaught静态方法
+    @Override// 执行下一个handler对象的ExceptionCaught事件
     public ChannelHandlerContext fireExceptionCaught(final Throwable cause) {
         invokeExceptionCaught(next, cause);
         return this;
@@ -317,7 +332,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         // 检测cause是否为空
     	ObjectUtil.checkNotNull(cause, "cause");
         EventExecutor executor = next.executor();
-     // 获取执行器EventLoop，用于判断是否在当前线程
+        // 获取执行器EventLoop，用于判断是否在当前线程
         if (executor.inEventLoop()) {
         	// 在当前线程，则立即执行 invokeExceptionCaught方法
             next.invokeExceptionCaught(cause);
@@ -367,7 +382,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的UserEventTriggered事件
     public ChannelHandlerContext fireUserEventTriggered(final Object event) {
     	// 执行invokeUserEventTriggered静态方法(Decoder)
         invokeUserEventTriggered(findContextInbound(), event);
@@ -409,12 +424,13 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelRead事件
     public ChannelHandlerContext fireChannelRead(final Object msg) {
     	// 执行invokeChannelRead静态方法(Decoder)
         invokeChannelRead(findContextInbound(), msg);
         return this;
     }
+    
     static void invokeChannelRead(final AbstractChannelHandlerContext next, final Object msg) {
     	// 检验msg是否为空
         ObjectUtil.checkNotNull(msg, "msg");
@@ -451,7 +467,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override // 执行下一个handler对象的ChannelReadComplete事件
     public ChannelHandlerContext fireChannelReadComplete() {
     	// 执行invokeChannelReadComplete静态方法(Decoder)
         invokeChannelReadComplete(findContextInbound());
@@ -496,7 +512,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override// 执行下一个handler对象的ChannelWritabilityChanged事件
     public ChannelHandlerContext fireChannelWritabilityChanged() {
     	// 执行invokeChannelWritabilityChanged静态方法(Decoder)
         invokeChannelWritabilityChanged(findContextInbound());
@@ -551,7 +567,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return connect(remoteAddress, newPromise());
     }
 
-    @Override
+    @Override// 连接远程服务器
     public ChannelFuture connect(SocketAddress remoteAddress, SocketAddress localAddress) {
         return connect(remoteAddress, localAddress, newPromise());
     }
@@ -571,12 +587,13 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return deregister(newPromise());
     }
 
-    @Override
+    @Override// 绑定本地地址端口
     public ChannelFuture bind(final SocketAddress localAddress, final ChannelPromise promise) {
     	// 空指针异常
         if (localAddress == null) {
             throw new NullPointerException("localAddress");
         }
+        
         // 验证promise的类型
         if (isNotValidPromise(promise, false)) {
             // cancelled
@@ -602,6 +619,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return promise;
     }
 
+    // User自己实现Bind方法
     private void invokeBind(SocketAddress localAddress, ChannelPromise promise) {
     	// 执行 Context对应的 handler的 invokeBind方法
         if (invokeHandler()) {
@@ -646,7 +664,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         	// 执行invokeConnect方法
             next.invokeConnect(remoteAddress, localAddress, promise);
         } else {
-        	// 封装成定时任务
+        	// 安全封装成定时任务添加至线程执行队列中去
             safeExecute(executor, new Runnable() {
                 @Override
                 public void run() {
@@ -657,6 +675,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return promise;
     }
 
+    // User实现Connect方法
     private void invokeConnect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
     	// 执行 Context对应的 handler的 invokeConnect方法
     	if (invokeHandler()) {
@@ -713,6 +732,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return promise;
     }
 
+    // User实现disconnect方法
     private void invokeDisconnect(ChannelPromise promise) {
     	// 执行 Context对应的 handler的 invokeDisconnect方法
         if (invokeHandler()) {
@@ -759,6 +779,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return promise;
     }
 
+    // User自己实现close方法
     private void invokeClose(ChannelPromise promise) {
     	// 执行 Context对应的 handler的 invokeClose方法
         if (invokeHandler()) {
@@ -805,6 +826,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return promise;
     }
 
+    // 注销处理
     private void invokeDeregister(ChannelPromise promise) {
     	// 执行 Context对应的 handler的 invokeDeregister方法
         if (invokeHandler()) {
@@ -850,6 +872,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return this;
     }
 
+    // User自己实现read操作
     private void invokeRead() {
     	// 执行 Context对应的 handler的 invokeRead方法
         if (invokeHandler()) {
@@ -867,7 +890,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
-    @Override
+    @Override // 向Channel中写对象
     public ChannelFuture write(Object msg) {
         return write(msg, newPromise());
     }
@@ -885,6 +908,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
                 return promise;
             }
         } catch (RuntimeException e) {
+        	// 释放引用计数
             ReferenceCountUtil.release(msg);
             throw e;
         }
@@ -892,59 +916,10 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
 
         return promise;
     }
-
-    private void invokeWrite(Object msg, ChannelPromise promise) {
-        if (invokeHandler()) {
-            invokeWrite0(msg, promise);
-        } else {
-            write(msg, promise);
-        }
-    }
-
-    private void invokeWrite0(Object msg, ChannelPromise promise) {
-        try {
-            ((ChannelOutboundHandler) handler()).write(this, msg, promise);
-        } catch (Throwable t) {
-            notifyOutboundHandlerException(t, promise);
-        }
-    }
-
+    
     @Override
-    public ChannelHandlerContext flush() {
-        final AbstractChannelHandlerContext next = findContextOutbound();
-        EventExecutor executor = next.executor();
-        if (executor.inEventLoop()) {
-            next.invokeFlush();
-        } else {
-            Runnable task = next.invokeFlushTask;
-            if (task == null) {
-                next.invokeFlushTask = task = new Runnable() {
-                    @Override
-                    public void run() {
-                        next.invokeFlush();
-                    }
-                };
-            }
-            safeExecute(executor, task, channel().voidPromise(), null);
-        }
-
-        return this;
-    }
-
-    private void invokeFlush() {
-        if (invokeHandler()) {
-            invokeFlush0();
-        } else {
-            flush();
-        }
-    }
-
-    private void invokeFlush0() {
-        try {
-            ((ChannelOutboundHandler) handler()).flush(this);
-        } catch (Throwable t) {
-            notifyHandlerException(t);
-        }
+    public ChannelFuture writeAndFlush(Object msg) {
+        return writeAndFlush(msg, newPromise());
     }
 
     @Override
@@ -958,12 +933,56 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
             // cancelled
             return promise;
         }
-
+        
+        // 进行flush操作
         write(msg, true, promise);
 
         return promise;
     }
+    
+    // 向Channel进行ByteBuffer对象
+    private void write(Object msg, boolean flush, ChannelPromise promise) {
+    	// 寻找该Context对象之前的OutBound对象进行write操作
+        AbstractChannelHandlerContext next = findContextOutbound();
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop()) {
+            if (flush) { // 释放进行flush操作
+                next.invokeWriteAndFlush(msg, promise);
+            } else {
+            	// 进行写任务
+                next.invokeWrite(msg, promise);
+            }
+        } else {
+            AbstractWriteTask task;
+            if (flush) {
+            	// 写同时进行flush任务
+                task = WriteAndFlushTask.newInstance(next, msg, promise);
+            }  else {
+            	// 写任务
+                task = WriteTask.newInstance(next, msg, promise);
+            }
+            safeExecute(executor, task, promise, msg);
+        }
+    }
 
+    private void invokeWrite(Object msg, ChannelPromise promise) {
+        if (invokeHandler()) {
+            invokeWrite0(msg, promise);
+        } else {
+            write(msg, promise);
+        }
+    }
+
+    // 将数据写入到Channel对象中
+    private void invokeWrite0(Object msg, ChannelPromise promise) {
+        try {
+        	// 由出栈处理器去将数据进行一系列操作并最终由HeadContext写入到Channel对象中
+            ((ChannelOutboundHandler) handler()).write(this, msg, promise);
+        } catch (Throwable t) {
+            notifyOutboundHandlerException(t, promise);
+        }
+    }
+    
     private void invokeWriteAndFlush(Object msg, ChannelPromise promise) {
         if (invokeHandler()) {
             invokeWrite0(msg, promise);
@@ -972,30 +991,47 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
             writeAndFlush(msg, promise);
         }
     }
-
-    private void write(Object msg, boolean flush, ChannelPromise promise) {
-        AbstractChannelHandlerContext next = findContextOutbound();
-        EventExecutor executor = next.executor();
-        if (executor.inEventLoop()) {
-            if (flush) {
-                next.invokeWriteAndFlush(msg, promise);
-            } else {
-                next.invokeWrite(msg, promise);
-            }
-        } else {
-            AbstractWriteTask task;
-            if (flush) {
-                task = WriteAndFlushTask.newInstance(next, msg, promise);
-            }  else {
-                task = WriteTask.newInstance(next, msg, promise);
-            }
-            safeExecute(executor, task, promise, msg);
+    
+    // User实现flush方法
+    private void invokeFlush0() {
+        try {
+            ((ChannelOutboundHandler) handler()).flush(this);
+        } catch (Throwable t) {
+            notifyHandlerException(t);
         }
     }
 
     @Override
-    public ChannelFuture writeAndFlush(Object msg) {
-        return writeAndFlush(msg, newPromise());
+    public ChannelHandlerContext flush() {
+        final AbstractChannelHandlerContext next = findContextOutbound();
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop()) {
+            next.invokeFlush();
+        } else {
+            Runnable task = next.invokeFlushTask;
+            if (task == null) {
+            	// 创建刷新任务
+                next.invokeFlushTask = task = new Runnable() {
+                    @Override
+                    public void run() {
+                        next.invokeFlush();
+                    }
+                };
+            }
+            // 将任务添加进线程执行队列中
+            safeExecute(executor, task, channel().voidPromise(), null);
+        }
+
+        return this;
+    }
+
+    // 调用flush方法
+    private void invokeFlush() {
+        if (invokeHandler()) {
+            invokeFlush0();
+        } else {
+            flush();
+        }
     }
 
     private static void notifyOutboundHandlerException(Throwable cause, ChannelPromise promise) {
@@ -1134,7 +1170,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         return channel().voidPromise();
     }
 
-    // 设置删除完成
+    // 设置该HandlerContext状态为删除完成
     final void setRemoved() {
         handlerState = REMOVE_COMPLETE;
     }
@@ -1153,6 +1189,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         }
     }
 
+    // 设置正处于添加状态中
     final void setAddPending() {
     	// 设置正处于添加状态中
         boolean updated = HANDLER_STATE_UPDATER.compareAndSet(this, INIT, ADD_PENDING);
@@ -1167,6 +1204,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
      * This is needed as {@link DefaultChannelPipeline} may already put the {@link ChannelHandler} in the linked-list
      * but not called {@link ChannelHandler#handlerAdded(ChannelHandlerContext)}.
      */
+    // 判断handler是否添加完成
     private boolean invokeHandler() {
         // Store in local variable to reduce volatile reads.
     	// 处理状态
@@ -1186,6 +1224,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
             executor.execute(runnable);
         } catch (Throwable cause) {
             try {
+            	// 设置失败状态
                 promise.setFailure(cause);
             } finally {
                 if (msg != null) {
@@ -1203,7 +1242,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         // Assuming a 64-bit JVM, 16 bytes object header, 3 reference fields and one int field, plus alignment
         private static final int WRITE_TASK_OVERHEAD =
                 SystemPropertyUtil.getInt("io.netty.transport.writeTaskSizeOverhead", 48);
-
+ 
         private final Recycler.Handle handle;
         private AbstractChannelHandlerContext ctx;
         private Object msg;
@@ -1221,11 +1260,14 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
             task.promise = promise;
 
             if (ESTIMATE_TASK_SIZE_ON_SUBMIT) {
+            	// 获取输出缓冲对象
                 ChannelOutboundBuffer buffer = ctx.channel().unsafe().outboundBuffer();
 
                 // Check for null as it may be set to null if the channel is closed already
                 if (buffer != null) {
+                	// 估计分配内存空间
                     task.size = ctx.pipeline.estimatorHandle().size(msg) + WRITE_TASK_OVERHEAD;
+                    // 递增写入字节数
                     buffer.incrementPendingOutboundBytes(task.size);
                 } else {
                     task.size = 0;
@@ -1249,19 +1291,23 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
                 ctx = null;
                 msg = null;
                 promise = null;
+                // 回收对象
                 recycle(handle);
             }
         }
 
+        // 向缓冲区写入字节(在run()中实现缓冲区写)
         protected void write(AbstractChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
             ctx.invokeWrite(msg, promise);
         }
 
+        // 回收对象
         protected abstract void recycle(Recycler.Handle handle);
     }
 
     static final class WriteTask extends AbstractWriteTask implements SingleThreadEventLoop.NonWakeupRunnable {
 
+    	// 垃圾回收机制:存储对象
         private static final Recycler<WriteTask> RECYCLER = new Recycler<WriteTask>() {
             @Override
             protected WriteTask newObject(Handle handle) {
@@ -1269,6 +1315,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
             }
         };
 
+        // 返回WriteTask对象
         private static WriteTask newInstance(
                 AbstractChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
             WriteTask task = RECYCLER.get();
@@ -1309,6 +1356,7 @@ abstract class AbstractChannelHandlerContext extends DefaultAttributeMap impleme
         @Override
         public void write(AbstractChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
             super.write(ctx, msg, promise);
+            // 调用flush方法
             ctx.invokeFlush();
         }
 

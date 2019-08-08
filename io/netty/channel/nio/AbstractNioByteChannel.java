@@ -75,7 +75,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                     // 触发用户相应事件
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
-                	// 调用AbstractChannel中的Close方法
+                	// 调用AbstractChannel中的Close方法(关闭socket操作)
                     close(voidPromise());
                 }
             }
@@ -123,8 +123,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             final ByteBufAllocator allocator = config.getAllocator();
             // 每次允许读取的最大字节数
             final int maxMessagesPerRead = config.getMaxMessagesPerRead();
-            
-            
+
             // 设置内存分配器
             RecvByteBufAllocator.Handle allocHandle = this.allocHandle;
             if (allocHandle == null) {

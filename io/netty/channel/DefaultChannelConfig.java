@@ -61,11 +61,14 @@ public class DefaultChannelConfig implements ChannelConfig {
     private volatile int maxMessagesPerRead;
     // 最大写次数
     private volatile int writeSpinCount = 16;
+    
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int autoRead = 1;
+    
     private volatile boolean autoClose = true;
     private volatile int writeBufferHighWaterMark = 64 * 1024;
     private volatile int writeBufferLowWaterMark = 32 * 1024;
+    
     private volatile boolean pinEventExecutor = true;
 
     public DefaultChannelConfig(Channel channel) {

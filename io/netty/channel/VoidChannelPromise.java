@@ -37,6 +37,7 @@ final class VoidChannelPromise extends AbstractFuture<Void> implements ChannelPr
         	// 空指针异常
             throw new NullPointerException("channel");
         }
+        
         // SocketChannel对象
         this.channel = channel;
         // 触发异常

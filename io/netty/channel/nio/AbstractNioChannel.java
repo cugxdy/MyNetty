@@ -76,7 +76,6 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     // 请求服务远程地址
     private SocketAddress requestedRemoteAddress;
 
-    
     /**
      * Create a new instance
      *
@@ -246,7 +245,6 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // 释放资源,设置异常堆栈并发起注册
                     if (connectTimeoutMillis > 0) {
                     	// 创建定时任务并添加至任务队列中 
-                    	// 
                         connectTimeoutFuture = eventLoop().schedule(new Runnable() {
                             @Override
                             public void run() {
@@ -377,6 +375,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         }
 
         // 判断网络操作位是否为OP_WRITE状态
+        // 判断是否正处于flush中
         private boolean isFlushPending() {
             SelectionKey selectionKey = selectionKey();
             return selectionKey.isValid() && (selectionKey.interestOps() & SelectionKey.OP_WRITE) != 0;
@@ -413,7 +412,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         }
     }
 
-    @Override// 取消注册
+    @Override// 从selector取消socket的注册
     protected void doDeregister() throws Exception {
         eventLoop().cancel(selectionKey());
     }
