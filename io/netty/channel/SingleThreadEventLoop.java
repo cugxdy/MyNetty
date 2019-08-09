@@ -80,7 +80,7 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         channel.unsafe().register(this, promise);
         return promise;
     }
-
+ 
     @Override// 判断该任务是否为wakesUp任务
     protected boolean wakesUpForTask(Runnable task) {
         return !(task instanceof NonWakeupRunnable);
