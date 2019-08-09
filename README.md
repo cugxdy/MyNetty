@@ -9,3 +9,5 @@
                 task = WriteTask.newInstance(next, msg, promise);
             }
             safeExecute(executor, task, promise, msg);
+2、netty 中如何处理selector优化技巧
+3、netty 中如何处理Epoll 空轮询bug 导致CPU100%
