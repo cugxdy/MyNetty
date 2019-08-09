@@ -65,7 +65,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      *
      * Threading - synchronized(this). We must support adding listeners when there is no EventExecutor.
      */
-    // 监听对象
+    // 监听对象集合
     private Object listeners;
     /**
      * Threading - synchronized(this). We are required to hold the monitor to use Java's underlying wait()/notifyAll().
@@ -77,13 +77,14 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      * Threading - synchronized(this). We must prevent concurrent notification and FIFO listener notification if the
      * executor changes.
      */
+    // 为true:表示已经通知观察者了
     private boolean notifyingListeners;
 
     /**
      * Creates a new instance.
      *
      * It is preferable to use {@link EventExecutor#newPromise()} to create a new promise
-     *
+     * 
      * @param executor
      *        the {@link EventExecutor} which is used to notify the promise once it is complete.
      *        It is assumed this executor will protect against {@link StackOverflowError} exceptions.
@@ -105,7 +106,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         executor = null;
     }
 
-    @Override
+    @Override// 设置成功状态
     public Promise<V> setSuccess(V result) {
     	// 调用setSuccess0()方法并对其操作结果进行判断,
     	// 如果操作成功,则调用notifyListeners方法通知Listener
@@ -127,7 +128,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         return false;
     }
 
-    @Override// 设置失败结果
+    @Override// 设置失败状态
     public Promise<V> setFailure(Throwable cause) {
         if (setFailure0(cause)) {
             notifyListeners();
@@ -202,7 +203,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         synchronized (this) {
         	// 遍历listeners,对其中每个都执行添加删除
             for (GenericFutureListener<? extends Future<? super V>> listener : listeners) {
-                if (listener == null) {
+                // 传入数组中不允许为null
+            	if (listener == null) {
                     break;
                 }
                 
@@ -239,7 +241,8 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         synchronized (this) {
         	// 遍历listeners,对其中的listener执行删除操作
             for (GenericFutureListener<? extends Future<? super V>> listener : listeners) {
-                if (listener == null) {
+            	// 传入数组中不允许为null
+            	if (listener == null) {
                     break;
                 }
                 // 将listener从DefaultFutureListeners对象移除中
@@ -503,6 +506,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
                 try {
                     notifyListenersNow();
                 } finally {
+                	// 设置
                     threadLocals.setFutureListenerStackDepth(stackDepth);
                 }
                 return;
@@ -574,6 +578,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
             } else {
                 notifyListener0(this, (GenericFutureListener<? extends Future<V>>) listeners);
             }
+            
             synchronized (this) {
                 if (this.listeners == null) {
                     // Nothing can throw from within this method, so setting notifyingListeners back to false does not
@@ -602,6 +607,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     private static void notifyListener0(Future future, GenericFutureListener l) {
         try {
         	// 执行GenericFutureListener的operationComplete方法
+        	// 外部接口设计
             l.operationComplete(future);
         } catch (Throwable t) {
         	// 日志记录警告信息
@@ -648,7 +654,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
     	// 原子性更新操作结果(比较并替换) -- unsafe实现
         if (RESULT_UPDATER.compareAndSet(this, null, objResult) ||
             RESULT_UPDATER.compareAndSet(this, UNCANCELLABLE, objResult)) {
-        	// 唤醒阻塞线程
+        	// 唤醒阻塞线程(synchronized)
             checkNotifyWaiters();
             return true;
         }
@@ -767,7 +773,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      * @param progress the new progress.
      * @param total the total progress.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // 执行GenericProgressiveFutureListener对象
     void notifyProgressiveListeners(final long progress, final long total) {
     	// 获取GenericProgressiveFutureListener数组对象
         final Object listeners = progressiveListeners();
@@ -817,6 +823,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
      * Returns a {@link GenericProgressiveFutureListener}, an array of {@link GenericProgressiveFutureListener}, or
      * {@code null}.
      */
+    // 获取所有的GenericProgressiveFutureListener对象
     private synchronized Object progressiveListeners() {
         Object listeners = this.listeners;
         if (listeners == null) {
@@ -875,6 +882,7 @@ public class DefaultPromise<V> extends AbstractFuture<V> implements Promise<V> {
         }
     }
 
+    // 执行所有GenericProgressiveFutureListener的operationProgressed方法
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static void notifyProgressiveListener0(
             ProgressiveFuture future, GenericProgressiveFutureListener l, long progress, long total) {

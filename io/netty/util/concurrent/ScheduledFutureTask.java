@@ -146,6 +146,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                 }
             } else {
                 // check if is done as it may was cancelled
+            	// 判断该任务是否被撤销
                 if (!isCancelled()) {
                     task.call();
                     // 判断是否处于shutdown状态中
@@ -157,6 +158,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
                         } else {
                             deadlineNanos = nanoTime() - p;
                         }
+                        // 判断该任务是否被撤销
                         if (!isCancelled()) {
                             // scheduledTaskQueue can never be null as we lazy init it before submit the task!
                             // 获取定时任务队列,并判断定时任务队列是否为空,将周期性任务再次添加至任务队列中

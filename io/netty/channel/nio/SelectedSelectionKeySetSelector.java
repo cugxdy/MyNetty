@@ -21,8 +21,12 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Set;
 
+// SelectedSelectionKeySetSelector类继承了Selector类
 final class SelectedSelectionKeySetSelector extends Selector {
+	
+	// 数组SelectionKeys对象集合
     private final SelectedSelectionKeySet selectionKeys;
+    // selector对象
     private final Selector delegate;
 
     SelectedSelectionKeySetSelector(Selector delegate, SelectedSelectionKeySet selectionKeys) {

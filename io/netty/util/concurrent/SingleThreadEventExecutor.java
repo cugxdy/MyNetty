@@ -82,6 +82,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER =
             AtomicIntegerFieldUpdater.newUpdater(SingleThreadEventExecutor.class, "state");
 
+    // EventLoop所属的Group对象
     private final EventExecutorGroup parent;
     
     // 用于存储任务的队列，是一个MpscUnboundedArrayQueue实例。 (多个生产者 -- 单个消费者)
@@ -197,6 +198,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
                     try {
                         // Run all remaining tasks and shutdown hooks.
+                    	// 运行所有的剩余任务并处理shutdown任务
                         for (;;) {
                             if (confirmShutdown()) {
                                 break;
@@ -204,12 +206,13 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                         }
                     } finally {
                         try {
-                        	// 关闭NIO的轮询队列事件
+                        	// 关闭NIO的轮询队列事件 selector.close()
                             cleanup();
                         } finally {
                         	// 设置state状态为ST_TERMINATED状态
                             STATE_UPDATER.set(SingleThreadEventExecutor.this, ST_TERMINATED);
                             threadLock.release();
+                            
                             // 任务队列不为空时
                             if (!taskQueue.isEmpty()) {
                                 logger.warn(
@@ -224,6 +227,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 }
             }
         });
+        
         // 初始化线程属性
         threadProperties = new DefaultThreadProperties(thread);
         // 最大待处理任务个数
@@ -348,7 +352,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         // 取出到时定时任务
         Runnable scheduledTask  = pollScheduledTask(nanoTime);
         while (scheduledTask != null) {
-        	// 将定时任务push任务执行队列中
+        	// 将定时任务offer任务执行队列中
+        	// offer操作队列已满:就返回false
+        	// offer操作队列未满:就返回true
             if (!taskQueue.offer(scheduledTask)) {
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
                 scheduledTaskQueue().add((ScheduledFutureTask<?>) scheduledTask);
@@ -461,6 +467,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         // 从定时任务队列中存在定时任务
         } while (!fetchedAll); // keep on processing until we fetched all scheduled tasks.
 
+        // 更新最新时间
         lastExecutionTime = ScheduledFutureTask.nanoTime();
         return true;
     }
@@ -858,7 +865,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             addTask(task);
             // 判断是否正处于下线状态中
             if (isShutdown() && removeTask(task)) {
-                reject();
+                reject();// 拒绝策略
             }
         }
 

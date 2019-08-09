@@ -36,7 +36,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
      * Create a new instance using the default number of threads, the default {@link ThreadFactory} and
      * the {@link SelectorProvider} which is returned by {@link SelectorProvider#provider()}.
      */
-	// 创建线程池(线程数为0)
+	// 创建线程池(线程数为CPU核数*2)
     public NioEventLoopGroup() {
         this(0);
     }
@@ -86,7 +86,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
      * Sets the percentage of the desired amount of time spent for I/O in the child event loops.  The default value is
      * {@code 50}, which means the event loop will try to spend the same amount of time for I/O as for non-I/O tasks.
      */
-    // 设置I/O运行任务比率
+    // 设置I/O运行任务比率(网络I/O与任务队列中的执行率,防止出现饿死情况)
     public void setIoRatio(int ioRatio) {
         for (EventExecutor e: children()) {
             ((NioEventLoop) e).setIoRatio(ioRatio);
@@ -104,7 +104,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     }
 
     
-    @Override
+    @Override// 创建NioEventLoop对象,即线程执行器,并用串行无锁化设计
     protected EventExecutor newChild(ThreadFactory threadFactory, Object... args) throws Exception {
     	// 创建NioEventLoop对象
         return new NioEventLoop(this, threadFactory, (SelectorProvider) args[0],

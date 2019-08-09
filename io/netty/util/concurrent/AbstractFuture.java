@@ -25,6 +25,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @param <V>
  */
+// 它实现了java。util.Future中的get()与get(long time , timeUnit unit);方法
 public abstract class AbstractFuture<V> implements Future<V> {
 
     @Override

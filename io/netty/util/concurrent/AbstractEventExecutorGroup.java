@@ -29,42 +29,42 @@ import java.util.concurrent.TimeoutException;
  */
 public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
 
-    @Override
+    @Override// 向执行中提交runnable任务
     public Future<?> submit(Runnable task) {
         return next().submit(task);
     }
 
-    @Override
+    @Override// 向执行中提交callable任务
     public <T> Future<T> submit(Runnable task, T result) {
         return next().submit(task, result);
     }
 
-    @Override
+    @Override// 向执行器中提交callable任务
     public <T> Future<T> submit(Callable<T> task) {
         return next().submit(task);
     }
 
-    @Override
+    @Override// 提交定时任务
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         return next().schedule(command, delay, unit);
     }
 
-    @Override
+    @Override// 提交定时任务
     public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         return next().schedule(callable, delay, unit);
     }
 
-    @Override
+    @Override// 提交定时任务
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
         return next().scheduleAtFixedRate(command, initialDelay, period, unit);
     }
 
-    @Override
+    @Override// 提交定时任务
     public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
         return next().scheduleWithFixedDelay(command, initialDelay, delay, unit);
     }
 
-    @Override
+    @Override// 优雅关闭
     public Future<?> shutdownGracefully() {
         return shutdownGracefully(2, 15, TimeUnit.SECONDS);
     }
@@ -86,7 +86,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return Collections.emptyList();
     }
 
-    @Override
+    @Override// 批量执行任务
     public <T> List<java.util.concurrent.Future<T>> invokeAll(Collection<? extends Callable<T>> tasks)
             throws InterruptedException {
         return next().invokeAll(tasks);
@@ -109,7 +109,7 @@ public abstract class AbstractEventExecutorGroup implements EventExecutorGroup {
         return next().invokeAny(tasks, timeout, unit);
     }
 
-    @Override
+    @Override// 将任务添加进任务队列中
     public void execute(Runnable command) {
         next().execute(command);
     }

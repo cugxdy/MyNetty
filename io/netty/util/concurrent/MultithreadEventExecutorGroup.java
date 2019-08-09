@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Abstract base class for {@link EventExecutorGroup} implementations that handles their tasks with multiple threads at
  * the same time.
  */
+@SuppressWarnings("rawtypes")
 public abstract class MultithreadEventExecutorGroup extends AbstractEventExecutorGroup {
 
     private final EventExecutor[] children; // 事件执行组
@@ -37,8 +38,9 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     private final AtomicInteger terminatedChildren = new AtomicInteger();
     
     // 创建DefaultPromise对象,GlobalEventExecutor为全局唯一的事件执行器
-    private final Promise<?> terminationFuture = new DefaultPromise(GlobalEventExecutor.INSTANCE);
-    // EventLoop选择器
+	private final Promise<?> terminationFuture = new DefaultPromise(GlobalEventExecutor.INSTANCE);
+    
+	// EventLoop选择器
     private final EventExecutorChooser chooser;
 
     /**
@@ -91,12 +93,12 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                         try {
                         	// 判断state == 5是否为true
                             while (!e.isTerminated()) {
-                            	// 阻塞线程等待
+                            	// 一直等待到线程结束 阻塞线程等待
                                 e.awaitTermination(Integer.MAX_VALUE, TimeUnit.SECONDS);
                             }
                             // 在WAIT状态下,调用interrupt()方法会触发InterruptedException并将中断标志位清除
                         } catch (InterruptedException interrupted) {
-                        	// 重新设置中断标志
+                        	// 设置中断标志
                             Thread.currentThread().interrupt();
                             break;
                         }
@@ -110,7 +112,8 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             @Override
             public void operationComplete(Future<Object> future) throws Exception {
                 if (terminatedChildren.incrementAndGet() == children.length) {
-                    terminationFuture.setSuccess(null);
+                    // 表示线程执行器成功关闭
+                	terminationFuture.setSuccess(null);
                 }
             }
         };
@@ -149,6 +152,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     /**
      * Return a safe-copy of all of the children of this group.
      */
+    // 返回Set<EventExecutor>对象
     protected Set<EventExecutor> children() {
     	// 将children设置为set集合类
         Set<EventExecutor> children = Collections.newSetFromMap(new LinkedHashMap<EventExecutor, Boolean>());
@@ -196,6 +200,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         return true;
     }
 
+    // 判断是否处于shutdown下
     @Override
     public boolean isShutdown() {
         for (EventExecutor l: children) {
@@ -206,6 +211,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         return true;
     }
 
+    // 判断是否处于终止状态下
     @Override
     public boolean isTerminated() {
         for (EventExecutor l: children) {
@@ -216,7 +222,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         return true;
     }
 
-    @Override
+    @Override// 等候指定时间,去获取返回结果对象
     public boolean awaitTermination(long timeout, TimeUnit unit)
             throws InterruptedException {
         long deadline = System.nanoTime() + unit.toNanos(timeout);
@@ -244,6 +250,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         EventExecutor next();
     }
 
+    // 指数类型选择器
     private final class PowerOfTwoEventExecutorChooser implements EventExecutorChooser {
         @Override
         public EventExecutor next() {
@@ -251,6 +258,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
         }
     }
 
+    // 非指数类型选择器
     private final class GenericEventExecutorChooser implements EventExecutorChooser {
         @Override
         public EventExecutor next() {
