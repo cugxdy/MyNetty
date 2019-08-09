@@ -55,6 +55,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      *
      * This method MUST be called only when {@link #inEventLoop()} is {@code true}.
      */
+    // 从优先级队列中删除所有的定时任务
     protected void cancelScheduledTasks() {
         assert inEventLoop(); 
         // 定时任务队列
@@ -82,7 +83,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      * @see #pollScheduledTask(long)
      */
     // Return the Runnable which is ready to be executed with the given nanoTime. 
-    // 返回在一段时间内就绪的定时任务
+    // 返回在一段时间内就绪的第一个定时任务
     protected final Runnable pollScheduledTask() {
         return pollScheduledTask(nanoTime());
     }
@@ -157,6 +158,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         if (delay < 0) {
             delay = 0;
         }
+        
         // 创建ScheduledFutureTask定时任务
         return schedule(new ScheduledFutureTask<Void>(
                 this, command, null, ScheduledFutureTask.deadlineNanos(unit.toNanos(delay))));
