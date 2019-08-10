@@ -26,8 +26,11 @@ import java.nio.ByteBuffer;
  */
 public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
+	// 创建堆内存与堆外内存计数器
     private final UnpooledByteBufAllocatorMetric metric = new UnpooledByteBufAllocatorMetric();
+    // 是否禁用(true:仅仅使用GC来回收垃圾)
     private final boolean disableLeakDetector;
+    // 是否存在清理者
     private final boolean noCleaner;
 
     /**
@@ -55,6 +58,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
      *                            allocator. This can be useful if the user just want to depend on the GC to handle
      *                            direct buffers when not explicit released.
      */
+    // 
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector) {
         this(preferDirect, disableLeakDetector, PlatformDependent.useDirectBufferNoCleaner());
     }
@@ -71,13 +75,14 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
      *                            to allocate direct memory.
      */
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector, boolean tryNoCleaner) {
-        super(preferDirect);
+        super(preferDirect); // 是否使用堆外内存
+        // 设置disableLeakDetector属性与noCleaner属性
         this.disableLeakDetector = disableLeakDetector;
         noCleaner = tryNoCleaner && PlatformDependent.hasUnsafe()
                 && PlatformDependent.hasDirectBufferNoCleanerConstructor();
     }
 
-    @Override
+    @Override// 创建指定容量大小和最大容量的ByteBuf对象
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
         return PlatformDependent.hasUnsafe() ?
                 new InstrumentedUnpooledUnsafeHeapByteBuf(this, initialCapacity, maxCapacity) :
@@ -108,32 +113,37 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         return disableLeakDetector ? buf : toLeakAwareBuffer(buf);
     }
 
-    @Override
+    @Override// 该对象不为pool类型
     public boolean isDirectBufferPooled() {
         return false;
     }
 
-    @Override
+    @Override// 返回计数器对象
     public ByteBufAllocatorMetric metric() {
         return metric;
     }
 
+    // 递增堆外计数器
     void incrementDirect(int amount) {
         metric.directCounter.add(amount);
     }
 
+    // 递减堆外内存计数器
     void decrementDirect(int amount) {
         metric.directCounter.add(-amount);
     }
 
+    // 递增堆内存计数器
     void incrementHeap(int amount) {
         metric.heapCounter.add(amount);
     }
 
+    // 递减堆内存计数器
     void decrementHeap(int amount) {
         metric.heapCounter.add(-amount);
     }
 
+    // 它继承了UnpooledUnsafeHeapByteBuf对象
     private static final class InstrumentedUnpooledUnsafeHeapByteBuf extends UnpooledUnsafeHeapByteBuf {
         InstrumentedUnpooledUnsafeHeapByteBuf(UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
             super(alloc, initialCapacity, maxCapacity);
@@ -142,6 +152,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         byte[] allocateArray(int initialCapacity) {
             byte[] bytes = super.allocateArray(initialCapacity);
+            // 递增计数器
             ((UnpooledByteBufAllocator) alloc()).incrementHeap(bytes.length);
             return bytes;
         }
@@ -150,10 +161,12 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         void freeArray(byte[] array) {
             int length = array.length;
             super.freeArray(array);
+            // 递减计数器
             ((UnpooledByteBufAllocator) alloc()).decrementHeap(length);
         }
     }
 
+    // hasUnsafe() = true :创建InstrumentedUnpooledHeapByteBuf对象
     private static final class InstrumentedUnpooledHeapByteBuf extends UnpooledHeapByteBuf {
         InstrumentedUnpooledHeapByteBuf(UnpooledByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
             super(alloc, initialCapacity, maxCapacity);
@@ -162,6 +175,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         byte[] allocateArray(int initialCapacity) {
             byte[] bytes = super.allocateArray(initialCapacity);
+            // 递增堆内存计数器
             ((UnpooledByteBufAllocator) alloc()).incrementHeap(bytes.length);
             return bytes;
         }
@@ -170,6 +184,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         void freeArray(byte[] array) {
             int length = array.length;
             super.freeArray(array);
+            // 递减堆内存计数器
             ((UnpooledByteBufAllocator) alloc()).decrementHeap(length);
         }
     }
@@ -234,6 +249,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         @Override
         protected ByteBuffer allocateDirect(int initialCapacity) {
             ByteBuffer buffer = super.allocateDirect(initialCapacity);
+            // 递增堆外内存计数器
             ((UnpooledByteBufAllocator) alloc()).incrementDirect(buffer.capacity());
             return buffer;
         }
@@ -242,12 +258,16 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
         protected void freeDirect(ByteBuffer buffer) {
             int capacity = buffer.capacity();
             super.freeDirect(buffer);
+            // 递减堆外内存计数器
             ((UnpooledByteBufAllocator) alloc()).decrementDirect(capacity);
         }
     }
 
+    // 内存分配计数器
     private static final class UnpooledByteBufAllocatorMetric implements ByteBufAllocatorMetric {
-        final LongCounter directCounter = PlatformDependent.newLongCounter();
+        
+    	// 堆内存与堆外内存计数器
+    	final LongCounter directCounter = PlatformDependent.newLongCounter();
         final LongCounter heapCounter = PlatformDependent.newLongCounter();
 
         @Override
@@ -260,7 +280,7 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
             return directCounter.value();
         }
 
-        @Override
+        @Override// 返回String对象
         public String toString() {
             return StringUtil.simpleClassName(this) +
                     "(usedHeapMemory: " + usedHeapMemory() + "; usedDirectMemory: " + usedDirectMemory() + ')';
