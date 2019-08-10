@@ -235,14 +235,16 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns the number of bytes (octets) this buffer can contain.
      */
+	// 返回ByteBuf容量
     public abstract int capacity();
 
     /**
      * Adjusts the capacity of this buffer.  If the {@code newCapacity} is less than the current
-     * capacity, the content of this buffer is truncated.  If the {@code newCapacity} is greater
-     * than the current capacity, the buffer is appended with unspecified data whose length is
+     * capacity, the content of this buffer is truncated(删减).  If the {@code newCapacity} is greater
+     * than the current capacity, the buffer is appended(添加) with unspecified data whose length is
      * {@code (newCapacity - currentCapacity)}.
      */
+    // 设置ByteBuf容量
     public abstract ByteBuf capacity(int newCapacity);
 
     /**
@@ -251,17 +253,20 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * {@link #ensureWritable(int)}, those methods will raise an
      * {@link IllegalArgumentException}.
      */
+    // 获取该ByteBuf最大允许容量
     public abstract int maxCapacity();
 
     /**
      * Returns the {@link ByteBufAllocator} which created this buffer.
      */
+    // 返回内存分配器
     public abstract ByteBufAllocator alloc();
 
     /**
      * Returns the <a href="http://en.wikipedia.org/wiki/Endianness">endianness</a>
      * of this buffer.
      */
+    // ByteOrder定义了写入buffer时字节的顺序
     public abstract ByteOrder order();
 
     /**
@@ -272,6 +277,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * return {@code this}.  This method does not modify {@code readerIndex} or {@code writerIndex}
      * of this buffer.
      */
+    // 设置写入buffer时字节的顺序
     public abstract ByteBuf order(ByteOrder endianness);
 
     /**
@@ -285,11 +291,13 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * Returns {@code true} if and only if this buffer is backed by an
      * NIO direct buffer.
      */
+    // 是否为堆外内存
     public abstract boolean isDirect();
 
     /**
      * Returns the {@code readerIndex} of this buffer.
      */
+    // 获取读索引
     public abstract int readerIndex();
 
     /**
@@ -300,11 +308,13 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *            less than {@code 0} or
      *            greater than {@code this.writerIndex}
      */
+    // 设置读索引(当小于0或者大于读索引时,抛出IndexOutOfBoundsException异常 )
     public abstract ByteBuf readerIndex(int readerIndex);
 
     /**
      * Returns the {@code writerIndex} of this buffer.
      */
+    // 获取读索引
     public abstract int writerIndex();
 
     /**
@@ -315,6 +325,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *            less than {@code this.readerIndex} or
      *            greater than {@code this.capacity}
      */
+    // 设置读索引(当小于读索引或者大于capacity时,抛出IndexOutOfBoundsException)
     public abstract ByteBuf writerIndex(int writerIndex);
 
     /**
@@ -368,24 +379,28 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         {@code readerIndex} or if the specified {@code writerIndex} is
      *         greater than {@code this.capacity}
      */
+    // 设置读写索引
     public abstract ByteBuf setIndex(int readerIndex, int writerIndex);
 
     /**
      * Returns the number of readable bytes which is equal to
      * {@code (this.writerIndex - this.readerIndex)}.
      */
+    // 获取可读字节数(this.writerIndex - this.readerIndex)
     public abstract int readableBytes();
 
     /**
      * Returns the number of writable bytes which is equal to
      * {@code (this.capacity - this.writerIndex)}.
      */
+    // 获取可写字节数(this.capacity - this.writerIndex)
     public abstract int writableBytes();
 
     /**
      * Returns the maximum possible number of writable bytes, which is equal to
      * {@code (this.maxCapacity - this.writerIndex)}.
      */
+    // 获取最大可写数(this.maxCapacity - this.writerIndex)
     public abstract int maxWritableBytes();
 
     /**
@@ -393,11 +408,13 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * if and only if {@code (this.writerIndex - this.readerIndex)} is greater
      * than {@code 0}.
      */
+    // 判断当前ByteBuf是否可读
     public abstract boolean isReadable();
 
     /**
      * Returns {@code true} if and only if this buffer contains equal to or more than the specified number of elements.
      */
+    // 判断当前ByteBuf是否可读size字节数
     public abstract boolean isReadable(int size);
 
     /**
@@ -405,12 +422,14 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * if and only if {@code (this.capacity - this.writerIndex)} is greater
      * than {@code 0}.
      */
+    // 判断当前ByteBuf是否可写
     public abstract boolean isWritable();
 
     /**
      * Returns {@code true} if and only if this buffer has enough room to allow writing the specified number of
      * elements.
      */
+    // 判断当前ByteBuf是否可写size字节
     public abstract boolean isWritable(int size);
 
     /**
@@ -422,6 +441,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * from that of NIO buffer, which sets the {@code limit} to
      * the {@code capacity} of the buffer.
      */
+    // 设置readerIndex与writerIndex为0
     public abstract ByteBuf clear();
 
     /**
@@ -430,6 +450,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * {@code readerIndex} by calling {@link #resetReaderIndex()}.
      * The initial value of the marked {@code readerIndex} is {@code 0}.
      */
+    // 标记当前ByteBuf中的readerIndex索引号
+    // 可以调用resetReaderIndex恢复mark索引号
     public abstract ByteBuf markReaderIndex();
 
     /**
@@ -440,6 +462,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the current {@code writerIndex} is less than the marked
      *         {@code readerIndex}
      */
+    // 设置readerIndex索引号为markReaderIndex索引号
     public abstract ByteBuf resetReaderIndex();
 
     /**
@@ -448,6 +471,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * {@code writerIndex} by calling {@link #resetWriterIndex()}.
      * The initial value of the marked {@code writerIndex} is {@code 0}.
      */
+    // 标记当前ByteBuf中的writerIndex索引号
+    // 可以调用resetWriterIndex恢复mark索引号
     public abstract ByteBuf markWriterIndex();
 
     /**
@@ -458,6 +483,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the current {@code readerIndex} is greater than the marked
      *         {@code writerIndex}
      */
+    // 设置writerIndex索引号为markWriterIndex索引号
     public abstract ByteBuf resetWriterIndex();
 
     /**
@@ -468,6 +494,12 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * <p>
      * Please refer to the class documentation for more detailed explanation.
      */
+    // 0 1 2 3 4 5 6 7 8 9
+    //     r     w
+    // 2 3 4 5 6 7 8 9
+    // r     w
+    // 将该ByteBuf对象中已读字节数删除
+    // 并重置读写索引号
     public abstract ByteBuf discardReadBytes();
 
     /**
@@ -510,6 +542,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         {@code 3} if the buffer does not have enough bytes, but its capacity has been
      *                   increased to its maximum.
      */
+    // 判断是否可读最小minWritableBytes字节数
+    // 返回0 1 3 4四种情况
     public abstract int ensureWritable(int minWritableBytes, boolean force);
 
     /**
@@ -521,6 +555,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the specified {@code index} is less than {@code 0} or
      *         {@code index + 1} is greater than {@code this.capacity}
      */
+    // 判断某个位置上元素是否可得
     public abstract boolean getBoolean(int index);
 
     /**
@@ -532,6 +567,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if the specified {@code index} is less than {@code 0} or
      *         {@code index + 1} is greater than {@code this.capacity}
      */
+    // 获取某个位置上的字节
     public abstract byte  getByte(int index);
 
     /**
@@ -792,6 +828,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * @throws IOException
      *         if the specified channel threw an exception during I/O
      */
+    // 从this对象将长度为length的数据写入到out(GatheringByteChannel)对象中
     public abstract int getBytes(int index, GatheringByteChannel out, int length) throws IOException;
 
     /**
@@ -960,6 +997,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         if {@code srcIndex + length} is greater than
      *            {@code src.capacity}
      */
+    // 将当前ByteBuf中srcIndex开始长度为length的字节数组添加至ByteBuf(src)中以index以开始位置填充
     public abstract ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length);
 
     /**
