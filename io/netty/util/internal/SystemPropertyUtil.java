@@ -32,6 +32,7 @@ public final class SystemPropertyUtil {
      * Returns {@code true} if and only if the system property with the specified {@code key}
      * exists.
      */
+    // 判断系统属性值是否包含某个值
     public static boolean contains(String key) {
         return get(key) != null;
     }
@@ -42,6 +43,7 @@ public final class SystemPropertyUtil {
      *
      * @return the property value or {@code null}
      */
+    // 从系统属性中获取某个属性
     public static String get(String key) {
         return get(key, null);
     }
@@ -55,6 +57,7 @@ public final class SystemPropertyUtil {
      *         {@code def} if there's no such property or if an access to the
      *         specified property is not allowed.
      */
+    // 获取系统属性值(key)
     public static String get(final String key, String def) {
     	// 校验是否为空指针异常
         if (key == null) {
@@ -134,6 +137,7 @@ public final class SystemPropertyUtil {
      *         {@code def} if there's no such property or if an access to the
      *         specified property is not allowed.
      */
+    // 获取Int类型属性值
     public static int getInt(String key, int def) {
         String value = get(key);
         if (value == null) {
@@ -164,6 +168,7 @@ public final class SystemPropertyUtil {
      *         {@code def} if there's no such property or if an access to the
      *         specified property is not allowed.
      */
+    // 获取Long类型属性值
     public static long getLong(String key, long def) {
         String value = get(key);
         if (value == null) {
