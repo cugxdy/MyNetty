@@ -28,6 +28,7 @@ import java.util.Map;
  * A utility class that provides various common operations and constants
  * related with {@link Charset} and its relevant classes.
  */
+// ×Ö·û´®±àÂë¸ñÊ½
 public final class CharsetUtil {
 
     /**
