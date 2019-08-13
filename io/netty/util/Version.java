@@ -52,6 +52,7 @@ public final class Version {
      *
      * @return A {@link Map} whose keys are Maven artifact IDs and whose values are {@link Version}s
      */
+    // 获取当前Netty版本所对应的msg
     public static Map<String, Version> identify() {
         return identify(null);
     }
@@ -63,17 +64,21 @@ public final class Version {
      */
     public static Map<String, Version> identify(ClassLoader classLoader) {
         if (classLoader == null) {
+        	// 获取线程上下文类加载器
             classLoader = PlatformDependent.getContextClassLoader();
         }
 
         // Collect all properties.
+        // 属性集合类
         Properties props = new Properties();
         try {
+        	// 获取jar下META-INF/io.netty.versions.properties文件URL
             Enumeration<URL> resources = classLoader.getResources("META-INF/io.netty.versions.properties");
             while (resources.hasMoreElements()) {
                 URL url = resources.nextElement();
                 InputStream in = url.openStream();
                 try {
+                	// 加载Properties属性
                     props.load(in);
                 } finally {
                     try {
@@ -109,6 +114,13 @@ public final class Version {
                 continue;
             }
 
+            // 存储
+            // netty-transport-rxtx.version=4.0.56.Final
+            // netty-transport-rxtx.buildDate=2018-02-05 14\:57\:59 +0000
+            // netty-transport-rxtx.commitDate=2018-02-05 14\:31\:39 +0000
+            // netty-transport-rxtx.shortCommitHash=a15dd48
+            // netty-transport-rxtx.longCommitHash=a15dd48862b2b4cd76d19c73b41a29da9a2fbae8
+            // netty-transport-rxtx.repoStatus=clean
             artifactIds.add(artifactId);
         }
 
@@ -129,6 +141,7 @@ public final class Version {
         return versions;
     }
 
+    // 解析时间格式,获取Time属性
     private static long parseIso8601(String value) {
         try {
             return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z").parse(value).getTime();
@@ -154,11 +167,13 @@ public final class Version {
     private final String longCommitHash;
     private final String repositoryStatus;
 
+    // 创建Version对象
     private Version(
             String artifactId, String artifactVersion,
             long buildTimeMillis, long commitTimeMillis,
             String shortCommitHash, String longCommitHash, String repositoryStatus) {
-        this.artifactId = artifactId;
+        
+    	this.artifactId = artifactId;
         this.artifactVersion = artifactVersion;
         this.buildTimeMillis = buildTimeMillis;
         this.commitTimeMillis = commitTimeMillis;
