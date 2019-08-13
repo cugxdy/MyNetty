@@ -410,6 +410,7 @@ public final class StringUtil {
     /**
      * Get the length of a string, {@code null} input is considered {@code 0} length.
      */
+    // »ñÈ¡×Ö·û´®³¤¶È
     public static int length(String s) {
         return s == null ? 0 : s.length();
     }
@@ -417,6 +418,7 @@ public final class StringUtil {
     /**
      * Determine if a string is {@code null} or {@link String#isEmpty()} returns {@code true}.
      */
+    // ÅÐ¶Ï×Ö·û´®ÊÇ·ñÎª¿Õ
     public static boolean isNullOrEmpty(String s) {
         return s == null || s.isEmpty();
     }
