@@ -36,16 +36,25 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
 final class PlatformDependent0 {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(PlatformDependent0.class);
+    // address偏移量
     private static final long ADDRESS_FIELD_OFFSET;
+    // 字节数组偏移量
     private static final long BYTE_ARRAY_BASE_OFFSET;
+    // (long,int)构造器 Constructor对象
     private static final Constructor<?> DIRECT_BUFFER_CONSTRUCTOR;
+    // 用户来决定是否对Unsafe的使用
     private static final boolean IS_EXPLICIT_NO_UNSAFE = explicitNoUnsafe0();
+    // 分配数组方法
     private static final Method ALLOCATE_ARRAY_METHOD;
+    // java版本号(默认为1.6)
     private static final int JAVA_VERSION = javaVersion0();
+    // 判断是否为安卓系统环境下
     private static final boolean IS_ANDROID = isAndroid0();
 
+    // unsafe不可获得异常
     private static final Throwable UNSAFE_UNAVAILABILITY_CAUSE;
     private static final Object INTERNAL_UNSAFE;
+    // 默认为true
     private static final boolean IS_EXPLICIT_TRY_REFLECTION_SET_ACCESSIBLE = explicitTryReflectionSetAccessible0();
 
     static final Unsafe UNSAFE;
@@ -54,6 +63,7 @@ final class PlatformDependent0 {
      * Limits the number of bytes to copy per {@link Unsafe#copyMemory(long, long, long)} to allow safepoint polling
      * during a large copy.
      */
+    // copy limit限制
     private static final long UNSAFE_COPY_THRESHOLD = 1024L * 1024L;
 
     private static final boolean UNALIGNED;
@@ -66,13 +76,16 @@ final class PlatformDependent0 {
         Unsafe unsafe;
         Object internalUnsafe = null;
 
+        // 用户禁止使用unsafe类
         if (isExplicitNoUnsafe()) {
             direct = null;
             addressField = null;
+            // unsafe类禁止使用的异常类
             unsafeUnavailabilityCause = new UnsupportedOperationException("Unsafe explicitly disabled");
             unsafe = null;
             internalUnsafe = null;
         } else {
+        	// 创建DirectByteBuffer对象
             direct = ByteBuffer.allocateDirect(1);
 
             // attempt to access field Unsafe#theUnsafe
@@ -83,6 +96,7 @@ final class PlatformDependent0 {
                         final Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
                         // We always want to try using Unsafe as the access still works on java9 as well and
                         // we need it for out native-transports and many optimizations.
+                        // 设置setAccessible = true
                         Throwable cause = ReflectionUtil.trySetAccessible(unsafeField, false);
                         if (cause != null) {
                             return cause;
@@ -108,6 +122,7 @@ final class PlatformDependent0 {
             // instanceof check against Unsafe will trigger a class load and we might not have
             // the runtime permission accessClassInPackage.sun.misc
             if (maybeUnsafe instanceof Throwable) {
+            	// 当发生异常时,设置unsafe不可获得原因
                 unsafe = null;
                 unsafeUnavailabilityCause = (Throwable) maybeUnsafe;
                 logger.debug("sun.misc.Unsafe.theUnsafe: unavailable", (Throwable) maybeUnsafe);
@@ -121,6 +136,7 @@ final class PlatformDependent0 {
             // http://www.mail-archive.com/jdk6-dev@openjdk.java.net/msg00698.html
             if (unsafe != null) {
                 final Unsafe finalUnsafe = unsafe;
+                // 确保当前Unsafe对象支持copyMemory等内存分配方法
                 final Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
                     @Override
                     public Object run() {
@@ -150,6 +166,7 @@ final class PlatformDependent0 {
                 final Unsafe finalUnsafe = unsafe;
 
                 // attempt to access field Buffer#address
+                // 判断能否获取DirectByteBuffer对象中address属性值
                 final Object maybeAddressField = AccessController.doPrivileged(new PrivilegedAction<Object>() {
                     @Override
                     public Object run() {
@@ -173,6 +190,7 @@ final class PlatformDependent0 {
                     }
                 });
 
+                // 意味着address可获取
                 if (maybeAddressField instanceof Field) {
                     addressField = (Field) maybeAddressField;
                     logger.debug("java.nio.Buffer.address: available");
@@ -197,6 +215,7 @@ final class PlatformDependent0 {
                 }
             }
         }
+        // 设置Unsafe属性值
         UNSAFE_UNAVAILABILITY_CAUSE = unsafeUnavailabilityCause;
         UNSAFE = unsafe;
 
@@ -231,9 +250,11 @@ final class PlatformDependent0 {
                         });
 
                 if (maybeDirectBufferConstructor instanceof Constructor<?>) {
+                	// 使用unsafe分配内存地址
                     address = UNSAFE.allocateMemory(1);
                     // try to use the constructor now
                     try {
+                    	// 获取DirectByteBuffer对象中的(long,int)构造器
                         ((Constructor<?>) maybeDirectBufferConstructor).newInstance(address, 1);
                         directBufferConstructor = (Constructor<?>) maybeDirectBufferConstructor;
                         logger.debug("direct buffer constructor: available");
@@ -252,9 +273,11 @@ final class PlatformDependent0 {
                 }
             } finally {
                 if (address != -1) {
+                	// 释放内存地址
                     UNSAFE.freeMemory(address);
                 }
             }
+            // 设置(long,int)构造器,并设置address属性的偏移量
             DIRECT_BUFFER_CONSTRUCTOR = directBufferConstructor;
             ADDRESS_FIELD_OFFSET = objectFieldOffset(addressField);
             boolean unaligned;
@@ -264,6 +287,7 @@ final class PlatformDependent0 {
                     try {
                         Class<?> bitsClass =
                                 Class.forName("java.nio.Bits", false, getSystemClassLoader());
+                        // 获取方法名为unaligned的方法对象
                         Method unalignedMethod = bitsClass.getDeclaredMethod("unaligned");
                         Throwable cause = ReflectionUtil.trySetAccessible(unalignedMethod, true);
                         if (cause != null) {
@@ -288,6 +312,7 @@ final class PlatformDependent0 {
                 unaligned = (Boolean) maybeUnaligned;
                 logger.debug("java.nio.Bits.unaligned: available, {}", unaligned);
             } else {
+            	// 获取系统属性值os.arch
                 String arch = SystemPropertyUtil.get("os.arch", "");
                 //noinspection DynamicRegexReplaceableByCompiledPattern
                 unaligned = arch.matches("^(i[3-6]86|x86(_64)?|x64|amd64)$");
@@ -295,6 +320,7 @@ final class PlatformDependent0 {
                 logger.debug("java.nio.Bits.unaligned: unavailable {}", unaligned, t);
             }
 
+            // 设置UNALIGNED属性值
             UNALIGNED = unaligned;
             BYTE_ARRAY_BASE_OFFSET = arrayBaseOffset();
 
@@ -363,11 +389,14 @@ final class PlatformDependent0 {
                 DIRECT_BUFFER_CONSTRUCTOR != null ? "available" : "unavailable");
     }
 
+    // 判断是否禁用Unsafe类
     static boolean isExplicitNoUnsafe() {
         return IS_EXPLICIT_NO_UNSAFE;
     }
 
+    // 判断用户是否拒绝使用Unsafe类
     private static boolean explicitNoUnsafe0() {
+    	// 获取用户参数io.netty.noUnsafe,默认为false;
         final boolean noUnsafe = SystemPropertyUtil.getBoolean("io.netty.noUnsafe", false);
         logger.debug("-Dio.netty.noUnsafe: {}", noUnsafe);
 
@@ -378,9 +407,12 @@ final class PlatformDependent0 {
 
         // Legacy properties
         boolean tryUnsafe;
+        
         if (SystemPropertyUtil.contains("io.netty.tryUnsafe")) {
+        	// 获取用户参数io.netty.tryUnsafe,默认为true;
             tryUnsafe = SystemPropertyUtil.getBoolean("io.netty.tryUnsafe", true);
         } else {
+        	// 获取用户参数org.jboss.netty.tryUnsafe,默认为true;
             tryUnsafe = SystemPropertyUtil.getBoolean("org.jboss.netty.tryUnsafe", true);
         }
 
@@ -392,6 +424,7 @@ final class PlatformDependent0 {
         return false;
     }
 
+    // 获取UNALIGNED属性值
     static boolean isUnaligned() {
         return UNALIGNED;
     }
@@ -400,15 +433,18 @@ final class PlatformDependent0 {
         return UNSAFE != null;
     }
 
+    // Unsafe不可获取异常
     static Throwable getUnsafeUnavailabilityCause() {
         return UNSAFE_UNAVAILABILITY_CAUSE;
     }
 
+    // 使用unsafe抛出异常
     static void throwException(Throwable cause) {
         // JVM has been observed to crash when passing a null argument. See https://github.com/netty/netty/issues/4131.
         UNSAFE.throwException(checkNotNull(cause, "cause"));
     }
 
+    // 判断是否存在(long,int)构造器
     static boolean hasDirectBufferNoCleanerConstructor() {
         return DIRECT_BUFFER_CONSTRUCTOR != null;
     }
@@ -417,6 +453,7 @@ final class PlatformDependent0 {
         return newDirectBuffer(UNSAFE.reallocateMemory(directBufferAddress(buffer), capacity), capacity);
     }
 
+    // 使用unsafe申请堆外内存,并创建DirectByteBuffer对象
     static ByteBuffer allocateDirectNoCleaner(int capacity) {
         return newDirectBuffer(UNSAFE.allocateMemory(capacity), capacity);
     }
@@ -425,6 +462,7 @@ final class PlatformDependent0 {
         return ALLOCATE_ARRAY_METHOD != null;
     }
 
+    // 创建字节数组对象byte[]
     static byte[] allocateUninitializedArray(int size) {
         try {
             return (byte[]) ALLOCATE_ARRAY_METHOD.invoke(INTERNAL_UNSAFE, byte.class, size);
@@ -435,10 +473,12 @@ final class PlatformDependent0 {
         }
     }
 
+    // 创建DirectByteBuffer对象
     static ByteBuffer newDirectBuffer(long address, int capacity) {
         ObjectUtil.checkPositiveOrZero(capacity, "capacity");
 
         try {
+        	// 使用反射获取构造器生成实例对象
             return (ByteBuffer) DIRECT_BUFFER_CONSTRUCTOR.newInstance(address, capacity);
         } catch (Throwable cause) {
             // Not expected to ever throw!
@@ -449,6 +489,7 @@ final class PlatformDependent0 {
         }
     }
 
+    // 获取申请的堆外内存地址
     static long directBufferAddress(ByteBuffer buffer) {
         return getLong(buffer, ADDRESS_FIELD_OFFSET);
     }
@@ -593,6 +634,7 @@ final class PlatformDependent0 {
         return bytes[startPos] == 0;
     }
 
+    // 获取某个类的类加载器
     static ClassLoader getClassLoader(final Class<?> clazz) {
         if (System.getSecurityManager() == null) {
             return clazz.getClassLoader();
@@ -606,6 +648,7 @@ final class PlatformDependent0 {
         }
     }
 
+    // 获取线程上下文类加载器
     static ClassLoader getContextClassLoader() {
         if (System.getSecurityManager() == null) {
             return Thread.currentThread().getContextClassLoader();
@@ -619,6 +662,7 @@ final class PlatformDependent0 {
         }
     }
 
+    // 获取系统类加载器
     static ClassLoader getSystemClassLoader() {
         if (System.getSecurityManager() == null) {
             return ClassLoader.getSystemClassLoader();
@@ -636,18 +680,22 @@ final class PlatformDependent0 {
         return UNSAFE.addressSize();
     }
 
+    // 分配内存
     static long allocateMemory(long size) {
         return UNSAFE.allocateMemory(size);
     }
 
+    // 释放内存
     static void freeMemory(long address) {
         UNSAFE.freeMemory(address);
     }
 
+    // 重新申请内存:newSize : 新的内存大小
     static long reallocateMemory(long address, long newSize) {
         return UNSAFE.reallocateMemory(address, newSize);
     }
 
+    // 获取是否为安卓系统
     static boolean isAndroid() {
         return IS_ANDROID;
     }
@@ -655,6 +703,7 @@ final class PlatformDependent0 {
     private static boolean isAndroid0() {
         boolean android;
         try {
+        	// 通过Android.app.Application类来判断是否为安卓系统
             Class.forName("android.app.Application", false, getSystemClassLoader());
             android = true;
         } catch (Throwable ignored) {
@@ -668,15 +717,19 @@ final class PlatformDependent0 {
         return android;
     }
 
+    // 依据用户输入参数io.netty.tryReflectionSetAccessible来决定使用setAccessible方法
+    // 默认为true
     private static boolean explicitTryReflectionSetAccessible0() {
         // we disable reflective access
         return SystemPropertyUtil.getBoolean("io.netty.tryReflectionSetAccessible", javaVersion() < 9);
     }
 
+    // 获取是否使用setAccessible方法
     static boolean isExplicitTryReflectionSetAccessible() {
         return IS_EXPLICIT_TRY_REFLECTION_SET_ACCESSIBLE;
     }
 
+    // 获取java版本号
     static int javaVersion() {
         return JAVA_VERSION;
     }
@@ -685,8 +738,9 @@ final class PlatformDependent0 {
         final int majorVersion;
 
         if (isAndroid0()) {
-            majorVersion = 6;
+            majorVersion = 6; // 安卓系统 = 6
         } else {
+        	// 用户参数java.specification.version,默认为1.6
             majorVersion = majorVersionFromJavaSpecificationVersion();
         }
 
