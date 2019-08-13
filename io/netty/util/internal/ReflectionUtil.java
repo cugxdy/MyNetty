@@ -32,6 +32,7 @@ public final class ReflectionUtil {
             return new UnsupportedOperationException("Reflective setAccessible(true) disabled");
         }
         try {
+        	// …Ë÷√Accessible Ù–‘÷µ
             object.setAccessible(true);
             return null;
         } catch (SecurityException e) {
