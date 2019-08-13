@@ -16,6 +16,7 @@
 
 package io.netty.buffer;
 
+// 内存页，一个单位的内存大小。Chunk将自身申请的连续内存空间分割成相等大小的一堆Page。通过对Page的分配来完成内存分配功能。
 final class PoolSubpage<T> implements PoolSubpageMetric {
 
     final PoolChunk<T> chunk;

@@ -42,10 +42,14 @@ final class CleanerJava6 implements Cleaner {
         if (PlatformDependent0.hasUnsafe()) {
             ByteBuffer direct = ByteBuffer.allocateDirect(1);
             try {
+            	// 获取ByteBuffer对象的cleaner属性
                 Field cleanerField = direct.getClass().getDeclaredField("cleaner");
+                // 属性偏移量
                 fieldOffset = PlatformDependent0.objectFieldOffset(cleanerField);
+                // 获取Cleaner对象
                 Object cleaner = PlatformDependent0.getObject(direct, fieldOffset);
                 clean = cleaner.getClass().getDeclaredMethod("clean");
+                // Cleaner.clean()方法
                 clean.invoke(cleaner);
             } catch (Throwable t) {
                 // We don't have ByteBuffer.cleaner().
@@ -54,6 +58,7 @@ final class CleanerJava6 implements Cleaner {
                 error = t;
             }
         } else {
+        	// 抛出UnsupportedOperationException异常
             error = new UnsupportedOperationException("sun.misc.Unsafe unavailable");
         }
         if (error == null) {
@@ -61,20 +66,23 @@ final class CleanerJava6 implements Cleaner {
         } else {
             logger.debug("java.nio.ByteBuffer.cleaner(): unavailable", error);
         }
+        // 设置相应属性值
         CLEANER_FIELD_OFFSET = fieldOffset;
         CLEAN_METHOD = clean;
     }
 
+    // 判断是否支持DirectByteBuffer中的Cleaner属性值
     static boolean isSupported() {
         return CLEANER_FIELD_OFFSET != -1;
     }
 
-    @Override
+    @Override // 释放DirectByteBuffer内存
     public void freeDirectBuffer(ByteBuffer buffer) {
         if (!buffer.isDirect()) {
             return;
         }
         try {
+        	// 调用JDK中DirectByteBuffer对象中的Cleaner属性释放内存
             Object cleaner = PlatformDependent0.getObject(buffer, CLEANER_FIELD_OFFSET);
             if (cleaner != null) {
                 CLEAN_METHOD.invoke(cleaner);

@@ -59,6 +59,7 @@ public final class MathUtil {
      * @return {@code true} if the requested {@code index} and {@code length} will fit within {@code capacity}.
      * {@code false} if this would result in an index out of bounds exception.
      */
+    // ÅÐ¶ÏÊÇ·ñ³¬³öË÷ÒýºÅ
     public static boolean isOutOfBounds(int index, int length, int capacity) {
         return (index | length | (index + length) | (capacity - (index + length))) < 0;
     }

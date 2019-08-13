@@ -38,24 +38,31 @@ import static io.netty.util.internal.MathUtil.isOutOfBounds;
 /**
  * A skeletal implementation of a buffer.
  */
+// ByteBuf抽象显现类
 public abstract class AbstractByteBuf extends ByteBuf {
+	
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractByteBuf.class);
     private static final String PROP_MODE = "io.netty.buffer.bytebuf.checkAccessible";
+    // 安全检查,默认为true
     private static final boolean checkAccessible;
 
     static {
+    	// 设置属性
         checkAccessible = SystemPropertyUtil.getBoolean(PROP_MODE, true);
         if (logger.isDebugEnabled()) {
             logger.debug("-D{}: {}", PROP_MODE, checkAccessible);
         }
     }
 
+    // 记录引用计数对象被调用时候的方法调用栈
     static final ResourceLeakDetector<ByteBuf> leakDetector =
             ResourceLeakDetectorFactory.instance().newResourceLeakDetector(ByteBuf.class);
+    
     // 读索引
     int readerIndex;
     // 写索引
     int writerIndex;
+    
     // reset操作时所用读索引
     private int markedReaderIndex;
     // reset操作时所用写索引
@@ -64,8 +71,10 @@ public abstract class AbstractByteBuf extends ByteBuf {
     // MAX容量
     private int maxCapacity;
 
+    // ByteBuf对象包裹
     private SwappedByteBuf swappedBuf;
 
+    // 创建AbstractByteBuf对象并设置MAX容量
     protected AbstractByteBuf(int maxCapacity) {
         if (maxCapacity < 0) {
             throw new IllegalArgumentException("maxCapacity: " + maxCapacity + " (expected: >= 0)");
@@ -89,6 +98,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return readerIndex;
     }
 
+    
     @Override // 设置读索引
     public ByteBuf readerIndex(int readerIndex) {
     	// 检验输入参数:  输入参数必须大于0且小于当前的写索引
@@ -115,6 +125,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
                     "writerIndex: %d (expected: readerIndex(%d) <= writerIndex <= capacity(%d))",
                     writerIndex, readerIndex, capacity()));
         }
+        
         this.writerIndex = writerIndex;
         return this;
     }
@@ -132,6 +143,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 清空ByteBuf对象
     @Override // 将读写索引设置为0
     public ByteBuf clear() {
         readerIndex = writerIndex = 0;
@@ -197,7 +209,8 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    
+    @Override // 删除已读的字节数
     public ByteBuf discardReadBytes() {
         ensureAccessible();
         // 如果为0则说明没有可重用的缓冲区
@@ -221,19 +234,23 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 删除部分已读的字节数
     public ByteBuf discardSomeReadBytes() {
         ensureAccessible();
         if (readerIndex == 0) {
             return this;
         }
 
+        // 当readerIndex = writerIndex时
+        // 将mark与readerIndex、writerInde索引均置为0
         if (readerIndex == writerIndex) {
             adjustMarkers(readerIndex);
             writerIndex = readerIndex = 0;
             return this;
         }
 
+        // 当已读字节数大于容量的一半时
+        // 将已读字节数进行删除操作
         if (readerIndex >= capacity() >>> 1) {
             setBytes(0, this, readerIndex, writerIndex - readerIndex);
             writerIndex -= readerIndex;
@@ -243,11 +260,15 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 调整mark索引号
     protected final void adjustMarkers(int decrement) {
         int markedReaderIndex = this.markedReaderIndex;
         if (markedReaderIndex <= decrement) {
+        	
         	// 设置markedReaderIndex为0
             this.markedReaderIndex = 0;
+            
+            // 更新markWriter索引号
             int markedWriterIndex = this.markedWriterIndex;
             if (markedWriterIndex <= decrement) {
                 this.markedWriterIndex = 0;
@@ -256,6 +277,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
                 this.markedWriterIndex = markedWriterIndex - decrement;
             }
         } else {
+        	// 更新mark标记号
             this.markedReaderIndex = markedReaderIndex - decrement;
             markedWriterIndex -= decrement;
         }
@@ -272,6 +294,8 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
+    // 确保最小可写数
+    // 如果内存不够的话,需要进行内存扩容操作
     final void ensureWritable0(int minWritableBytes) {
         ensureAccessible();
         // 当前可写空间满足条件
@@ -287,31 +311,37 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
 
         // Normalize the current capacity to the power of 2.
+        // 计算扩容后的容量
         int newCapacity = calculateNewCapacity(writerIndex + minWritableBytes);
 
         // Adjust to the new capacity.
+        // 调整最新容量
         capacity(newCapacity);
     }
 
     @Override
     public int ensureWritable(int minWritableBytes, boolean force) {
         ensureAccessible();
+        // 输入参数合法性
         if (minWritableBytes < 0) {
             throw new IllegalArgumentException(String.format(
                     "minWritableBytes: %d (expected: >= 0)", minWritableBytes));
         }
 
+        // 当前剩余内存足够
         if (minWritableBytes <= writableBytes()) {
             return 0;
         }
 
         final int maxCapacity = maxCapacity();
         final int writerIndex = writerIndex();
+        // 当前内存不足,并且已达到最大允许容量,即扩容满足不了需求
         if (minWritableBytes > maxCapacity - writerIndex) {
             if (!force || capacity() == maxCapacity) {
                 return 1;
             }
 
+            // 设置为最大容量
             capacity(maxCapacity);
             return 3;
         }
@@ -321,10 +351,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         int newCapacity = calculateNewCapacity(writerIndex + minWritableBytes);
 
         // Adjust to the new capacity.
+        // 设置容量
         capacity(newCapacity);
         return 2;
     }
 
+    // 计算所需内存
     private int calculateNewCapacity(int minNewCapacity) {
         final int maxCapacity = this.maxCapacity;
         // 默认门限为4MB
@@ -336,8 +368,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
 
         // If over threshold, do not double but just increase by threshold.
+        // 如果最小内存大小大于4m时,需要每次递增4M内存
+        // 在这个时候每次递增内存,以4M为基数
         if (minNewCapacity > threshold) {
+        	// newCapacity为小于minNewCapacity的最大4M的倍数
             int newCapacity = minNewCapacity / threshold * threshold;
+            
             // 所需空间大于MAX容量时
             if (newCapacity > maxCapacity - threshold) {
             	// 使用maxCapacity作为缓冲区容量
@@ -352,15 +388,15 @@ public abstract class AbstractByteBuf extends ByteBuf {
         // Not over threshold. Double up to 4 MiB, starting from 64.
         int newCapacity = 64;
         while (newCapacity < minNewCapacity) {
-        	// 在64的基础上进行倍增操作
+        	// 在64的基础上进行倍增操作 (*2)
             newCapacity <<= 1;
         }
 
-        // 取两者中的最小值
+        // 取两者中的最小值(不允许超过newCapacity【最大容量值】)
         return Math.min(newCapacity, maxCapacity);
     }
 
-    @Override
+    @Override// SwappedByteBuf对象
     public ByteBuf order(ByteOrder endianness) {
     	// 空指针异常
         if (endianness == null) {
@@ -372,6 +408,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
 
         SwappedByteBuf swappedBuf = this.swappedBuf;
         if (swappedBuf == null) {
+        	// 创建SwappedByteBuf对象
             this.swappedBuf = swappedBuf = newSwappedByteBuf();
         }
         return swappedBuf;
@@ -380,6 +417,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
     /**
      * Creates a new {@link SwappedByteBuf} for this {@link ByteBuf} instance.
      */
+    // 创建SwappedByteBuf对象
     protected SwappedByteBuf newSwappedByteBuf() {
         return new SwappedByteBuf(this);
     }
@@ -390,6 +428,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return _getByte(index);
     }
 
+    // 获取指定index上的byte数据(模板模式-1字节)
     protected abstract byte _getByte(int index);
 
     @Override// 获取index位置上的boolean类型
@@ -397,33 +436,36 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return getByte(index) != 0;
     }
 
-    @Override// 获取index上无符号短整型数据
+    @Override// 获取index上无符号短整型数据(1字节)
     public short getUnsignedByte(int index) {
+    	// &FF:是用于高位1字节
         return (short) (getByte(index) & 0xFF);
     }
 
-    @Override
+    @Override// 获取index开始的2字节
     public short getShort(int index) {
         checkIndex(index, 2);
         return _getShort(index);
     }
 
+    // 获取指定位置上的short数据(模板模式-2字节)
     protected abstract short _getShort(int index);
 
-    @Override
+    @Override// 获取无符号类型short数据
     public int getUnsignedShort(int index) {
         return getShort(index) & 0xFFFF;
     }
 
-    @Override
+    @Override// 获取无符号类型medium数据
     public int getUnsignedMedium(int index) {
         checkIndex(index, 3);
         return _getUnsignedMedium(index);
     }
 
+    // 获取指定位置上的medium数据(模板模式-3字节)
     protected abstract int _getUnsignedMedium(int index);
 
-    @Override
+    @Override // 获取medium数据
     public int getMedium(int index) {
         int value = getUnsignedMedium(index);
         if ((value & 0x800000) != 0) {
@@ -432,148 +474,158 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return value;
     }
 
-    @Override
+    @Override// 获取int类型数据
     public int getInt(int index) {
         checkIndex(index, 4);
         return _getInt(index);
     }
 
+    // 获取指定位置上的int数据(模板模式-4字节)
     protected abstract int _getInt(int index);
 
-    @Override
+    @Override// 获取无符号类型long数据
     public long getUnsignedInt(int index) {
         return getInt(index) & 0xFFFFFFFFL;
     }
 
-    @Override
+    @Override// 获取long型数据
     public long getLong(int index) {
         checkIndex(index, 8);
         return _getLong(index);
     }
 
+    // 获取指定位置上的long数据(模板模式-8字节)
     protected abstract long _getLong(int index);
 
-    @Override
+    @Override// 获取指定位置上的char数据(模板模式-2字节)
     public char getChar(int index) {
         return (char) getShort(index);
     }
 
-    @Override
+    @Override// 获取float类型数据
     public float getFloat(int index) {
+    	// 其实是获取4字节数据转换成float形式数据
         return Float.intBitsToFloat(getInt(index));
     }
 
-    @Override
+    @Override// 获取double类型数据
     public double getDouble(int index) {
+    	// 其实是获取8字节数据转换成double形式数据
         return Double.longBitsToDouble(getLong(index));
     }
 
-    @Override
+    @Override// 在该ByteBuf中从index获取dst.length长度的字节数组
     public ByteBuf getBytes(int index, byte[] dst) {
         getBytes(index, dst, 0, dst.length);
         return this;
     }
 
-    @Override
+    @Override// 在该ByteBuf中从index获取dst可写长度的字节数组写入到dst中
     public ByteBuf getBytes(int index, ByteBuf dst) {
         getBytes(index, dst, dst.writableBytes());
         return this;
     }
 
-    @Override
+    @Override// 在该ByteBuf中从index获取length长度的字节数组写入到dst中
     public ByteBuf getBytes(int index, ByteBuf dst, int length) {
         getBytes(index, dst, dst.writerIndex(), length);
         dst.writerIndex(dst.writerIndex() + length);
         return this;
     }
 
-    @Override
+    @Override// 设置某个index位置上的数据(int - value - 4字节)
     public ByteBuf setByte(int index, int value) {
         checkIndex(index);
         _setByte(index, value);
         return this;
     }
 
+    // 设置指定位置index上的int数据(模板模式-4字节)
     protected abstract void _setByte(int index, int value);
 
-    @Override
+    @Override// 设置指定位置index上的boolean数据
     public ByteBuf setBoolean(int index, boolean value) {
         setByte(index, value? 1 : 0);
         return this;
     }
 
-    @Override
+    @Override// 设置某个index位置上的数据(short - value - 2字节)
     public ByteBuf setShort(int index, int value) {
         checkIndex(index, 2);
         _setShort(index, value);
         return this;
     }
 
+    // 设置指定位置index上的short数据(模板模式-2字节)
     protected abstract void _setShort(int index, int value);
 
-    @Override
+    @Override// 设置某个index位置上的数据(char - value - 2字节)
     public ByteBuf setChar(int index, int value) {
         setShort(index, value);
         return this;
     }
 
-    @Override
+    @Override// 设置某个index位置上的数据(medium - value - 3字节)
     public ByteBuf setMedium(int index, int value) {
         checkIndex(index, 3);
         _setMedium(index, value);
         return this;
     }
-
+    
+    // 设置指定位置index上的medium数据(模板模式-3字节)
     protected abstract void _setMedium(int index, int value);
 
-    @Override
+    @Override// 设置某个index位置上的数据(int - value - 4字节)
     public ByteBuf setInt(int index, int value) {
         checkIndex(index, 4);
         _setInt(index, value);
         return this;
     }
 
+    // 设置指定位置index上的int数据(模板模式-4字节)
     protected abstract void _setInt(int index, int value);
 
-    @Override
+    @Override// 设置某个index位置上的数据(float - value - 4字节)
     public ByteBuf setFloat(int index, float value) {
         setInt(index, Float.floatToRawIntBits(value));
         return this;
     }
 
-    @Override
+    @Override// 设置某个index位置上的数据(long - value - 8字节)
     public ByteBuf setLong(int index, long value) {
         checkIndex(index, 8);
         _setLong(index, value);
         return this;
     }
 
+    // 设置指定位置index上的long数据(模板模式-8字节)
     protected abstract void _setLong(int index, long value);
 
-    @Override
+    @Override// 设置某个index位置上的数据(double - value - 8字节)
     public ByteBuf setDouble(int index, double value) {
         setLong(index, Double.doubleToRawLongBits(value));
         return this;
     }
 
-    @Override
+    @Override// 设置该byteBuf对象中从index开始的长度为src.length的数据(从src中获取数据来源)
     public ByteBuf setBytes(int index, byte[] src) {
         setBytes(index, src, 0, src.length);
         return this;
     }
 
-    @Override
+    @Override// 将src对象中可读的字节数写入该ByteBuf对象中以index为开始位置的数组中
     public ByteBuf setBytes(int index, ByteBuf src) {
         setBytes(index, src, src.readableBytes());
         return this;
     }
 
-    @Override
+    @Override// 将src对象中length长度可读数据写入该ByteBuf对象中以index为开始位置的数组中
     public ByteBuf setBytes(int index, ByteBuf src, int length) {
         checkIndex(index, length);
         if (src == null) {
             throw new NullPointerException("src");
         }
+        // 判断可读字节数是否已经满足
         if (length > src.readableBytes()) {
             throw new IndexOutOfBoundsException(String.format(
                     "length(%d) exceeds src.readableBytes(%d) where src is: %s", length, src.readableBytes(), src));
@@ -584,7 +636,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 将ByteBuf中的数据设置为0
     public ByteBuf setZero(int index, int length) {
         if (length == 0) {
             return this;
@@ -592,23 +644,32 @@ public abstract class AbstractByteBuf extends ByteBuf {
 
         checkIndex(index, length);
 
+        // 除以8的整数部分
         int nLong = length >>> 3;
+        // 除以8的余数部分
         int nBytes = length & 7;
+        
         for (int i = nLong; i > 0; i --) {
+        	// 将8位字节设置为0
             _setLong(index, 0);
             index += 8;
         }
         if (nBytes == 4) {
+        	// 当余数为4,将int类型设置0
             _setInt(index, 0);
             // Not need to update the index as we not will use it after this.
         } else if (nBytes < 4) {
+        	// 当余数小于4时
             for (int i = nBytes; i > 0; i --) {
+            	// 对每个byte设置为0
                 _setByte(index, (byte) 0);
                 index ++;
             }
         } else {
+        	// 先将4个字节设置为0
             _setInt(index, 0);
             index += 4;
+            // 将其余的位按byte设置为0
             for (int i = nBytes - 4; i > 0; i --) {
                 _setByte(index, (byte) 0);
                 index ++;
@@ -617,7 +678,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取一个字节的数据(byte)
     public byte readByte() {
         checkReadableBytes0(1);
         int i = readerIndex;
@@ -626,17 +687,17 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return b;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取一个字节的数据并判断是否为0返回boolean类型
     public boolean readBoolean() {
         return readByte() != 0;
     }
 
-    @Override
+    @Override// 返回无符号short类型数据
     public short readUnsignedByte() {
         return (short) (readByte() & 0xFF);
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取两个个字节的数据(short)
     public short readShort() {
         checkReadableBytes0(2);
         short v = _getShort(readerIndex);
@@ -644,12 +705,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return v;
     }
 
-    @Override
+    @Override// 返回无符号short类型数据
     public int readUnsignedShort() {
         return readShort() & 0xFFFF;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取三个字节的数据(medium)
     public int readMedium() {
         int value = readUnsignedMedium();
         if ((value & 0x800000) != 0) {
@@ -658,7 +719,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return value;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取三个字节的数据(无符号medium)
     public int readUnsignedMedium() {
         checkReadableBytes0(3);
         int v = _getUnsignedMedium(readerIndex);
@@ -666,7 +727,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return v;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取四个字节的数据(int)
     public int readInt() {
         checkReadableBytes0(4);
         int v = _getInt(readerIndex);
@@ -674,12 +735,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return v;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取四个字节的数据(无符号int)
     public long readUnsignedInt() {
         return readInt() & 0xFFFFFFFFL;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取八个字节的数据(long)
     public long readLong() {
         checkReadableBytes0(8);
         long v = _getLong(readerIndex);
@@ -687,22 +748,22 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return v;
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取二个字节的数据(char)
     public char readChar() {
         return (char) readShort();
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取四个字节的数据(float)
     public float readFloat() {
         return Float.intBitsToFloat(readInt());
     }
 
-    @Override
+    @Override// 从该ByteBuf中读取八个字节的数据(double)
     public double readDouble() {
         return Double.longBitsToDouble(readLong());
     }
 
-    @Override
+    @Override// 从this对象中读取长度length的数据存入新创建的ByteBuf对象中
     public ByteBuf readBytes(int length) {
         checkReadableBytes(length);
         if (length == 0) {
@@ -723,7 +784,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return slice;
     }
 
-    @Override
+    @Override// 从this对象中读取length长度的字节数据存入以dstIndex开始的dst数组中
     public ByteBuf readBytes(byte[] dst, int dstIndex, int length) {
         checkReadableBytes(length);
         getBytes(readerIndex, dst, dstIndex, length);
@@ -731,19 +792,19 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从this中读取length长度的数据存入字节数组dst中
     public ByteBuf readBytes(byte[] dst) {
         readBytes(dst, 0, dst.length);
         return this;
     }
 
-    @Override
+    @Override// 从this中读取dst可写字节数的数据存入dst对象中
     public ByteBuf readBytes(ByteBuf dst) {
         readBytes(dst, dst.writableBytes());
         return this;
     }
 
-    @Override
+    @Override// 从this中读取length可写字节数的数据存入dst对象中
     public ByteBuf readBytes(ByteBuf dst, int length) {
         if (length > dst.writableBytes()) {
             throw new IndexOutOfBoundsException(String.format(
@@ -754,7 +815,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从this中读取length可写字节数的数据存入dst对象以dstIndex开始的数组中
     public ByteBuf readBytes(ByteBuf dst, int dstIndex, int length) {
         checkReadableBytes(length);
         getBytes(readerIndex, dst, dstIndex, length);
@@ -762,7 +823,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从this中读取length字节数的数据存入dst对象中
     public ByteBuf readBytes(ByteBuffer dst) {
         int length = dst.remaining();
         checkReadableBytes(length);
@@ -771,7 +832,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从this对象将长度为length的数据写入到out(GatheringByteChannel)对象中
     public int readBytes(GatheringByteChannel out, int length)
             throws IOException {
         checkReadableBytes(length);
@@ -780,7 +841,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return readBytes;
     }
 
-    @Override
+    @Override// 从this对象将长度为length的数据写入到out(OutputStream)对象中
     public ByteBuf readBytes(OutputStream out, int length) throws IOException {
         checkReadableBytes(length);
         getBytes(readerIndex, out, length);
@@ -788,7 +849,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 在this对象中跳过指定length的字节数据
     public ByteBuf skipBytes(int length) {
         checkReadableBytes(length);
         // 设置可读索引
@@ -796,20 +857,20 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入boolean类型数据
     public ByteBuf writeBoolean(boolean value) {
         writeByte(value ? 1 : 0);
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入byte类型数据
     public ByteBuf writeByte(int value) {
         ensureWritable0(1);
         _setByte(writerIndex++, value);
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入short类型数据
     public ByteBuf writeShort(int value) {
         ensureWritable0(2);
         _setShort(writerIndex, value);
@@ -817,7 +878,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入medium类型数据
     public ByteBuf writeMedium(int value) {
         ensureWritable0(3);
         _setMedium(writerIndex, value);
@@ -825,7 +886,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入int类型数据
     public ByteBuf writeInt(int value) {
         ensureWritable0(4);
         _setInt(writerIndex, value);
@@ -833,7 +894,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入long类型数据
     public ByteBuf writeLong(long value) {
         ensureWritable0(8);
         _setLong(writerIndex, value);
@@ -841,25 +902,25 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入char类型数据
     public ByteBuf writeChar(int value) {
         writeShort(value);
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入float类型数据
     public ByteBuf writeFloat(float value) {
         writeInt(Float.floatToRawIntBits(value));
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入double类型数据
     public ByteBuf writeDouble(double value) {
         writeLong(Double.doubleToRawLongBits(value));
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src中以srcIndex为开始位置的长度length的数据
     public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
         ensureWritable(length);
         setBytes(writerIndex, src, srcIndex, length);
@@ -867,19 +928,19 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src字节数组
     public ByteBuf writeBytes(byte[] src) {
         writeBytes(src, 0, src.length);
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src对象中可读字节数
     public ByteBuf writeBytes(ByteBuf src) {
         writeBytes(src, src.readableBytes());
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src对象中length长度可读字节数
     public ByteBuf writeBytes(ByteBuf src, int length) {
         if (length > src.readableBytes()) {
             throw new IndexOutOfBoundsException(String.format(
@@ -890,7 +951,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src对象中以srcIndex为开始位置的length长度可读字节数
     public ByteBuf writeBytes(ByteBuf src, int srcIndex, int length) {
         ensureWritable(length);
         setBytes(writerIndex, src, srcIndex, length);
@@ -898,7 +959,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入src对象中remaining字节数
     public ByteBuf writeBytes(ByteBuffer src) {
         int length = src.remaining();
         ensureWritable0(length);
@@ -907,7 +968,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 向this对象中写入in(InputStream)中长度length字节数
     public int writeBytes(InputStream in, int length)
             throws IOException {
         ensureWritable(length);
@@ -918,7 +979,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return writtenBytes;
     }
 
-    @Override // 读取字节数据
+    @Override // 向this对象中写入in(ScatteringByteChannel)中长度length字节数
     public int writeBytes(ScatteringByteChannel in, int length) throws IOException {
     	// 验证输入参数
         ensureWritable(length);
@@ -972,7 +1033,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return copy(readerIndex, readableBytes());
     }
 
-    @Override
+    @Override// 复制对象
     public ByteBuf duplicate() {
         return new DuplicatedAbstractByteBuf(this);
     }
@@ -982,17 +1043,17 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return slice(readerIndex, readableBytes());
     }
 
-    @Override
+    @Override// 创建SlicedAbstractByteBuf对象
     public ByteBuf slice(int index, int length) {
         return new SlicedAbstractByteBuf(this, index, length);
     }
 
-    @Override
+    @Override// 返回ByteBuffer对象
     public ByteBuffer nioBuffer() {
         return nioBuffer(readerIndex, readableBytes());
     }
 
-    @Override
+    @Override// 返回ByteBuffer对象数组
     public ByteBuffer[] nioBuffers() {
         return nioBuffers(readerIndex, readableBytes());
     }
@@ -1095,12 +1156,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return -1;
     }
 
-    @Override
+    @Override// 获取哈希码
     public int hashCode() {
         return ByteBufUtil.hashCode(this);
     }
 
-    @Override
+    @Override// 比较两者相等
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -1111,12 +1172,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return false;
     }
 
-    @Override
+    @Override// 比较大小
     public int compareTo(ByteBuf that) {
         return ByteBufUtil.compare(this, that);
     }
 
-    @Override
+    @Override// 返回String对象
     public String toString() {
         if (refCnt() == 0) {
             return StringUtil.simpleClassName(this) + "(freed)";
@@ -1139,10 +1200,12 @@ public abstract class AbstractByteBuf extends ByteBuf {
         return buf.toString();
     }
 
+    // 判断指定索引号是否存在ByteBuf中
     protected final void checkIndex(int index) {
         checkIndex(index, 1);
     }
 
+    // 判断指定长度的数据索引是否存在ByteBuf中
     protected final void checkIndex(int index, int fieldLength) {
         ensureAccessible();
         checkIndex0(index, fieldLength);
@@ -1155,6 +1218,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    // 检查源对象索引
     protected final void checkSrcIndex(int index, int length, int srcIndex, int srcCapacity) {
         checkIndex(index, length);
         if (isOutOfBounds(srcIndex, length, srcCapacity)) {
@@ -1163,6 +1227,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         }
     }
 
+    // 检查目标对象索引
     protected final void checkDstIndex(int index, int length, int dstIndex, int dstCapacity) {
         checkIndex(index, length);
         if (isOutOfBounds(dstIndex, length, dstCapacity)) {
@@ -1184,6 +1249,7 @@ public abstract class AbstractByteBuf extends ByteBuf {
         checkReadableBytes0(minimumReadableBytes);
     }
 
+    // 检车新容量是否有效
     protected final void checkNewCapacity(int newCapacity) {
         ensureAccessible();
         // 检验newCapacity合法性
@@ -1207,8 +1273,9 @@ public abstract class AbstractByteBuf extends ByteBuf {
      * Should be called by every method that tries to access the buffers content to check
      * if the buffer was released before.
      */
+    // 当引用计数为0时,抛出IllegalReferenceCountException异常
     protected final void ensureAccessible() {
-    	// 是否可获得的
+    	// 是否可获得的并且引用计数是否为0
         if (checkAccessible && refCnt() == 0) {
             throw new IllegalReferenceCountException(0);
         }

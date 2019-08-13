@@ -100,31 +100,35 @@ package io.netty.buffer;
  * where as per convention defined above
  * the second value (i.e, x) indicates that the first node which is free to be allocated is at depth x (from root)
  */
+// 内存块，一个连续内存空间的管理者。具体有堆内Chunk和堆外Chunk。默认大小为16MB。
 final class PoolChunk<T> implements PoolChunkMetric {
 
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
-    final PoolArena<T> arena;
+    final PoolArena<T> arena; // PoolArena arena;该PoolChunk所属的PoolArena。
     final T memory;
-    final boolean unpooled;
+    final boolean unpooled; // 是否是可重用的，unpooled=false表示可重用
     final int offset;
 
-    private final byte[] memoryMap;
+    private final byte[] memoryMap; //PoolChunk的物理视图是连续的PoolSubpage,用PoolSubpage保持，而memoryMap是所有PoolSubpage的
     private final byte[] depthMap;
     private final PoolSubpage<T>[] subpages;
+    
     /** Used to determine if the requested capacity is equal to or greater than pageSize. */
     private final int subpageOverflowMask;
-    private final int pageSize;
-    private final int pageShifts;
-    private final int maxOrder;
-    private final int chunkSize;
-    private final int log2ChunkSize;
-    private final int maxSubpageAllocs;
+    private final int pageSize;          // 每个PoolSubpage的大小，默认为8192个字节（8K)
+    private final int pageShifts;        // pageSize 2的 pageShifts幂
+    private final int maxOrder;          // 平衡二叉树的深度,一个PoolChunk包含 2的 maxOrder幂(1 << maxOrder)个PoolSubpage。
+    private final int chunkSize;         // PoolChunk的总内存大小,chunkSize =   (1<<maxOrder) * pageSize。
+    private final int log2ChunkSize;     // chunkSize是2的 log2ChunkSize幂,如果chunkSize = 2 的 10次幂,那么 log2ChunkSize=10
+    private final int maxSubpageAllocs;  // PoolChunk由maxSubpageAllocs个PoolSubpage组成。
+    
     /** Used to mark memory as unusable */
-    private final byte unusable;
+    private final byte unusable; //标记为已被分配的值，该值为 maxOrder + 1
 
-    private int freeBytes;
+    private int freeBytes;  // 当前PoolChunk空闲的内存
 
+    //一个PoolChunk分配后，会根据使用率挂在一个PoolChunkList中，在(PoolArena的PoolChunkList上)
     PoolChunkList<T> parent;
     PoolChunk<T> prev;
     PoolChunk<T> next;

@@ -40,7 +40,7 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
         refCntUpdater.set(this, 1);
     }
 
-    @Override
+    @Override// 获取当前引用计数
     public int refCnt() {
         return refCnt;
     }
@@ -48,17 +48,19 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
     /**
      * An unsafe operation intended for use by a subclass that sets the reference count of the buffer directly
      */
+    // 设置引用计数
     protected final void setRefCnt(int refCnt) {
         refCntUpdater.set(this, refCnt);
     }
 
-    @Override
+    @Override// 递增引用计数
     public ByteBuf retain() {
         return retain0(1);
     }
 
     @Override
     public ByteBuf retain(int increment) {
+    	// 必须大于或等于0
         return retain0(checkPositive(increment, "increment"));
     }
 
@@ -72,18 +74,20 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 释放引用计数
     public boolean release() {
         return release0(1);
     }
 
     @Override
     public boolean release(int decrement) {
+    	// 必须大于或等于0
         return release0(checkPositive(decrement, "decrement"));
     }
 
     private boolean release0(int decrement) {
         int oldRef = refCntUpdater.getAndAdd(this, -decrement);
+        // 即当前引用计数为0时,需要释放对象内存
         if (oldRef == decrement) {
             deallocate();
             return true;

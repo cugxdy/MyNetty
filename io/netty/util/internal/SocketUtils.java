@@ -45,12 +45,14 @@ public final class SocketUtils {
     private SocketUtils() {
     }
 
+    // 使用Socket连接远程服务器
     public static void connect(final Socket socket, final SocketAddress remoteAddress, final int timeout)
             throws IOException {
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
                 @Override
                 public Void run() throws IOException {
+                	// 连接远程服务器带超时时间
                     socket.connect(remoteAddress, timeout);
                     return null;
                 }
@@ -60,6 +62,7 @@ public final class SocketUtils {
         }
     }
 
+    // 服务器端绑定本地服务地址
     public static void bind(final Socket socket, final SocketAddress bindpoint) throws IOException {
         try {
             AccessController.doPrivileged(new PrivilegedExceptionAction<Void>() {
@@ -75,6 +78,7 @@ public final class SocketUtils {
         }
     }
 
+    // 客户端连接远程服务器,不带超时时间的
     public static boolean connect(final SocketChannel socketChannel, final SocketAddress remoteAddress)
             throws IOException {
         try {
@@ -105,6 +109,7 @@ public final class SocketUtils {
         }
     }
 
+    // 服务器端接收客户端连接请求,返回SocketChannel对象
     public static SocketChannel accept(final ServerSocketChannel serverSocketChannel) throws IOException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<SocketChannel>() {
@@ -132,6 +137,7 @@ public final class SocketUtils {
         }
     }
 
+    // 获取本地SocketAddress服务地址
     public static SocketAddress localSocketAddress(final ServerSocket socket) {
         return AccessController.doPrivileged(new PrivilegedAction<SocketAddress>() {
             @Override
@@ -141,6 +147,7 @@ public final class SocketUtils {
         });
     }
 
+    // 根据主机获取InetAddress
     public static InetAddress addressByName(final String hostname) throws UnknownHostException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<InetAddress>() {
@@ -154,6 +161,7 @@ public final class SocketUtils {
         }
     }
 
+    // 根据主机获取InetAddress
     public static InetAddress[] allAddressesByName(final String hostname) throws UnknownHostException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<InetAddress[]>() {
@@ -167,6 +175,7 @@ public final class SocketUtils {
         }
     }
 
+    // 创建InetSocketAddress对象
     public static InetSocketAddress socketAddress(final String hostname, final int port) {
         return AccessController.doPrivileged(new PrivilegedAction<InetSocketAddress>() {
             @Override
@@ -185,6 +194,7 @@ public final class SocketUtils {
         });
     }
 
+    // 获取硬件地址
     public static byte[] hardwareAddressFromNetworkInterface(final NetworkInterface intf) throws SocketException {
         try {
             return AccessController.doPrivileged(new PrivilegedExceptionAction<byte[]>() {

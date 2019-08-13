@@ -25,9 +25,11 @@ import java.util.List;
 
 import static java.lang.Math.*;
 
+// 将有相同使用率区间的Chunk集中在一起形成的一个Chunk列表。目的在于高效的分配和管理。
 final class PoolChunkList<T> implements PoolChunkListMetric {
     private static final Iterator<PoolChunkMetric> EMPTY_METRICS = Collections.<PoolChunkMetric>emptyList().iterator();
     private final PoolArena<T> arena;
+    // 后置节点
     private final PoolChunkList<T> nextList;
     private final int minUsage;
     private final int maxUsage;
@@ -35,6 +37,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
     private PoolChunk<T> head;
 
     // This is only update once when create the linked like list of PoolChunkList in PoolArena constructor.
+    // 前置节点
     private PoolChunkList<T> prevList;
 
     // TODO: Test if adding padding helps under contention

@@ -63,39 +63,60 @@ public final class PlatformDependent {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(PlatformDependent.class);
 
+    // 正则表达式
     private static final Pattern MAX_DIRECT_MEMORY_SIZE_ARG_PATTERN = Pattern.compile(
             "\\s*-XX:MaxDirectMemorySize\\s*=\\s*([0-9]+)\\s*([kKmMgG]?)\\s*$");
 
+    // window系统
     private static final boolean IS_WINDOWS = isWindows0();
+    // OS系统
     private static final boolean IS_OSX = isOsx0();
 
+    // 超级用户
     private static final boolean MAYBE_SUPER_USER;
 
+    // 允许使用TCP_NODELAY属性(!Android = true)
     private static final boolean CAN_ENABLE_TCP_NODELAY_BY_DEFAULT = !isAndroid();
 
+    // Unsafe类的使用
     private static final boolean HAS_UNSAFE = hasUnsafe0();
+    // 是否允许使用堆外内存
     private static final boolean DIRECT_BUFFER_PREFERRED =
             HAS_UNSAFE && !SystemPropertyUtil.getBoolean("io.netty.noPreferDirect", false);
+    
+    // 最大堆外内存
     private static final long MAX_DIRECT_MEMORY = maxDirectMemory0();
 
     private static final int MPSC_CHUNK_SIZE =  1024;
     private static final int MIN_MAX_MPSC_CAPACITY =  MPSC_CHUNK_SIZE * 2;
     private static final int MAX_ALLOWED_MPSC_CAPACITY = Pow2.MAX_POW2;
 
+    // 数组偏移量
     private static final long ARRAY_BASE_OFFSET = arrayBaseOffset0();
 
+    // 临时目录
     private static final File TMPDIR = tmpdir0();
 
+    // 判断是32位还是64位
     private static final int BIT_MODE = bitMode0();
+    // 处理器内核CPU型号(获取系统属性os.arch)
     private static final String NORMALIZED_ARCH = normalizeArch(SystemPropertyUtil.get("os.arch", ""));
+    // 操作系统类型类型(获取系统属性os.name)
     private static final String NORMALIZED_OS = normalizeOs(SystemPropertyUtil.get("os.name", ""));
 
+    // 32 - 4 :   64 - 8 
     private static final int ADDRESS_SIZE = addressSize0();
     private static final boolean USE_DIRECT_BUFFER_NO_CLEANER;
+    // 堆外内存计数器(防止超过最大内存)
     private static final AtomicLong DIRECT_MEMORY_COUNTER;
+    // 最大允许堆外内存
     private static final long DIRECT_MEMORY_LIMIT;
+    
+    // 随机数生成者
     private static final ThreadLocalRandomProvider RANDOM_PROVIDER;
+    // DirectByteBuffer释放内存对象
     private static final Cleaner CLEANER;
+    //-1
     private static final int UNINITIALIZED_ARRAY_ALLOCATION_THRESHOLD;
 
     public static final boolean BIG_ENDIAN_NATIVE_ORDER = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN;
@@ -109,6 +130,7 @@ public final class PlatformDependent {
 
     static {
         if (javaVersion() >= 7) {
+        	// 随机数生成者
             RANDOM_PROVIDER = new ThreadLocalRandomProvider() {
                 @Override
                 public Random current() {
@@ -131,6 +153,7 @@ public final class PlatformDependent {
          * We do not want to log this message if unsafe is explicitly disabled. Do not remove the explicit no unsafe
          * guard.
          */
+        // 表示正在运行的系统不能使用堆外内存
         if (!hasUnsafe() && !isAndroid() && !PlatformDependent0.isExplicitNoUnsafe()) {
             logger.info(
                     "Your platform does not provide complete low-level API for accessing direct buffers reliably. " +
@@ -145,14 +168,18 @@ public final class PlatformDependent {
         // * == 0  - Use cleaner, Netty will not enforce max memory, and instead will defer to JDK.
         // * >  0  - Don't use cleaner. This will limit Netty's total direct memory
         //           (note: that JDK's direct memory limit is independent of this).
+        // 用户输入io.netty.maxDirectMemory参数
         long maxDirectMemory = SystemPropertyUtil.getLong("io.netty.maxDirectMemory", -1);
 
         if (maxDirectMemory == 0 || !hasUnsafe() || !PlatformDependent0.hasDirectBufferNoCleanerConstructor()) {
-            USE_DIRECT_BUFFER_NO_CLEANER = false;
+            // 开启堆外内存辅助内存回收对象
+        	USE_DIRECT_BUFFER_NO_CLEANER = false;
             DIRECT_MEMORY_COUNTER = null;
         } else {
+        	// 不开启堆外内存辅助内存回收对象
             USE_DIRECT_BUFFER_NO_CLEANER = true;
             if (maxDirectMemory < 0) {
+            	// 获取最大允许堆外内存
                 maxDirectMemory = maxDirectMemory0();
                 if (maxDirectMemory <= 0) {
                     DIRECT_MEMORY_COUNTER = null;
@@ -172,6 +199,7 @@ public final class PlatformDependent {
                 tryAllocateUninitializedArray : -1;
         logger.debug("-Dio.netty.uninitializedArrayAllocationThreshold: {}", UNINITIALIZED_ARRAY_ALLOCATION_THRESHOLD);
 
+        // 判断是否为超级用户
         MAYBE_SUPER_USER = maybeSuperUser0();
 
         if (!isAndroid() && hasUnsafe()) {
@@ -180,6 +208,7 @@ public final class PlatformDependent {
             if (javaVersion() >= 9) {
                 CLEANER = CleanerJava9.isSupported() ? new CleanerJava9() : NOOP;
             } else {
+            	// 设置CLEANER属性值
                 CLEANER = CleanerJava6.isSupported() ? new CleanerJava6() : NOOP;
             }
         } else {
@@ -187,10 +216,12 @@ public final class PlatformDependent {
         }
     }
 
+    // 判断是否存在-DirectByteBuffer构造器
     public static boolean hasDirectBufferNoCleanerConstructor() {
         return PlatformDependent0.hasDirectBufferNoCleanerConstructor();
     }
 
+    // 创建字节数组
     public static byte[] allocateUninitializedArray(int size) {
         return UNINITIALIZED_ARRAY_ALLOCATION_THRESHOLD < 0 || UNINITIALIZED_ARRAY_ALLOCATION_THRESHOLD > size ?
                 new byte[size] : PlatformDependent0.allocateUninitializedArray(size);
@@ -199,6 +230,7 @@ public final class PlatformDependent {
     /**
      * Returns {@code true} if and only if the current platform is Android
      */
+    // 判断是否为安卓系统
     public static boolean isAndroid() {
         return PlatformDependent0.isAndroid();
     }
@@ -206,6 +238,7 @@ public final class PlatformDependent {
     /**
      * Return {@code true} if the JVM is running on Windows
      */
+    // 判断是否为window系统下
     public static boolean isWindows() {
         return IS_WINDOWS;
     }
@@ -213,6 +246,7 @@ public final class PlatformDependent {
     /**
      * Return {@code true} if the JVM is running on OSX / MacOS
      */
+    // 判断是否运行在MacOS系统上
     public static boolean isOsx() {
         return IS_OSX;
     }
@@ -221,6 +255,7 @@ public final class PlatformDependent {
      * Return {@code true} if the current user may be a super-user. Be aware that this is just an hint and so it may
      * return false-positives.
      */
+    // 判断是否为超级用户
     public static boolean maybeSuperUser() {
         return MAYBE_SUPER_USER;
     }
@@ -228,6 +263,7 @@ public final class PlatformDependent {
     /**
      * Return the version of Java under which this library is used.
      */
+    // 获取java版本号
     public static int javaVersion() {
         return PlatformDependent0.javaVersion();
     }
@@ -235,6 +271,7 @@ public final class PlatformDependent {
     /**
      * Returns {@code true} if and only if it is fine to enable TCP_NODELAY socket option by default.
      */
+    // 判断是否能默认开启Tcp配置参数TCP_NODELAY
     public static boolean canEnableTcpNoDelayByDefault() {
         return CAN_ENABLE_TCP_NODELAY_BY_DEFAULT;
     }
@@ -243,6 +280,7 @@ public final class PlatformDependent {
      * Return {@code true} if {@code sun.misc.Unsafe} was found on the classpath and can be used for accelerated
      * direct memory access.
      */
+    // 判断是否存在Unsafe类
     public static boolean hasUnsafe() {
         return HAS_UNSAFE;
     }
@@ -250,6 +288,7 @@ public final class PlatformDependent {
     /**
      * Return the reason (if any) why {@code sun.misc.Unsafe} was not available.
      */
+    // 获取为什么不能获取Unsafe的原因？
     public static Throwable getUnsafeUnavailabilityCause() {
         return PlatformDependent0.getUnsafeUnavailabilityCause();
     }
@@ -259,6 +298,7 @@ public final class PlatformDependent {
      *
      * @see <a href="http://en.wikipedia.org/wiki/Segmentation_fault#Bus_error">Wikipedia on segfault</a>
      */
+    // 未对齐检验
     public static boolean isUnaligned() {
         return PlatformDependent0.isUnaligned();
     }
@@ -267,6 +307,7 @@ public final class PlatformDependent {
      * Returns {@code true} if the platform has reliable low-level direct buffer access API and a user has not specified
      * {@code -Dio.netty.noPreferDirect} option.
      */
+    // 当前平台允许DirectByteBuffer对象
     public static boolean directBufferPreferred() {
         return DIRECT_BUFFER_PREFERRED;
     }
@@ -274,6 +315,7 @@ public final class PlatformDependent {
     /**
      * Returns the maximum memory reserved for direct buffer allocation.
      */
+    // 返回最大允许堆外内存
     public static long maxDirectMemory() {
         return MAX_DIRECT_MEMORY;
     }
@@ -281,6 +323,7 @@ public final class PlatformDependent {
     /**
      * Returns the temporary directory.
      */
+    // 返回临时最大目录路径
     public static File tmpdir() {
         return TMPDIR;
     }
@@ -288,6 +331,7 @@ public final class PlatformDependent {
     /**
      * Returns the bit mode of the current VM (usually 32 or 64.)
      */
+    // 判断是32位还是64位
     public static int bitMode() {
         return BIT_MODE;
     }
@@ -296,14 +340,17 @@ public final class PlatformDependent {
      * Return the address size of the OS.
      * 4 (for 32 bits systems ) and 8 (for 64 bits systems).
      */
+    // 32 - 4 :   64 - 8 
     public static int addressSize() {
         return ADDRESS_SIZE;
     }
 
+    // 分配size大小内存
     public static long allocateMemory(long size) {
         return PlatformDependent0.allocateMemory(size);
     }
 
+    // 释放内存
     public static void freeMemory(long address) {
         PlatformDependent0.freeMemory(address);
     }
@@ -328,6 +375,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link ConcurrentMap} implementation for the current platform.
      */
+    // 创建ConcurrentHashMap对象
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap() {
         return new ConcurrentHashMap<K, V>();
     }
@@ -335,6 +383,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link LongCounter} implementation for the current platform.
      */
+    // 返回LongCounter对象
     public static LongCounter newLongCounter() {
         if (javaVersion() >= 8) {
             return new LongAdderCounter();
@@ -346,6 +395,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link ConcurrentMap} implementation for the current platform.
      */
+    // 创建ConcurrentHashMap对象
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap(int initialCapacity) {
         return new ConcurrentHashMap<K, V>(initialCapacity);
     }
@@ -353,6 +403,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link ConcurrentMap} implementation for the current platform.
      */
+    // 创建ConcurrentHashMap对象
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap(int initialCapacity, float loadFactor) {
         return new ConcurrentHashMap<K, V>(initialCapacity, loadFactor);
     }
@@ -360,6 +411,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link ConcurrentMap} implementation for the current platform.
      */
+    // 创建ConcurrentHashMap对象
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap(
             int initialCapacity, float loadFactor, int concurrencyLevel) {
         return new ConcurrentHashMap<K, V>(initialCapacity, loadFactor, concurrencyLevel);
@@ -368,6 +420,7 @@ public final class PlatformDependent {
     /**
      * Creates a new fastest {@link ConcurrentMap} implementation for the current platform.
      */
+    // 创建ConcurrentHashMap对象
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap(Map<? extends K, ? extends V> map) {
         return new ConcurrentHashMap<K, V>(map);
     }
@@ -376,94 +429,117 @@ public final class PlatformDependent {
      * Try to deallocate the specified direct {@link ByteBuffer}. Please note this method does nothing if
      * the current platform does not support this operation or the specified buffer is not a direct buffer.
      */
+    // 释放堆外内存
     public static void freeDirectBuffer(ByteBuffer buffer) {
         CLEANER.freeDirectBuffer(buffer);
     }
 
+    // 获取堆外内存地址
     public static long directBufferAddress(ByteBuffer buffer) {
         return PlatformDependent0.directBufferAddress(buffer);
     }
 
+    // 为DirectByteBuffer对象重新分配内存
     public static ByteBuffer directBuffer(long memoryAddress, int size) {
         if (PlatformDependent0.hasDirectBufferNoCleanerConstructor()) {
             return PlatformDependent0.newDirectBuffer(memoryAddress, size);
         }
+        // 抛出UnsupportedOperationException异常
         throw new UnsupportedOperationException(
                 "sun.misc.Unsafe or java.nio.DirectByteBuffer.<init>(long, int) not available");
     }
 
+    // 使用unsafe获取Int(4字节)类型数据
     public static int getInt(Object object, long fieldOffset) {
         return PlatformDependent0.getInt(object, fieldOffset);
     }
 
+    // 使用unsafe获取byte(1字节)类型数据
     public static byte getByte(long address) {
         return PlatformDependent0.getByte(address);
     }
 
+    // 使用unsafe获取short(2字节)类型数据
     public static short getShort(long address) {
         return PlatformDependent0.getShort(address);
     }
 
+    // 使用unsafe获取Int(4字节)类型数据
     public static int getInt(long address) {
         return PlatformDependent0.getInt(address);
     }
 
+    // 使用unsafe获取long(8字节)类型数据
     public static long getLong(long address) {
         return PlatformDependent0.getLong(address);
     }
 
+    // 使用unsafe获取从index开始的byte(1字节)字节数组数据
     public static byte getByte(byte[] data, int index) {
         return PlatformDependent0.getByte(data, index);
     }
 
+    // 使用unsafe获取从index开始的short(2字节)字节数组数据
     public static short getShort(byte[] data, int index) {
         return PlatformDependent0.getShort(data, index);
     }
 
+    // 使用unsafe获取从index开始的int(4字节)字节数组数据
     public static int getInt(byte[] data, int index) {
         return PlatformDependent0.getInt(data, index);
     }
 
+    // 使用unsafe获取从index开始的long(8字节)字节数组数据
     public static long getLong(byte[] data, int index) {
         return PlatformDependent0.getLong(data, index);
     }
 
+    // 使用unsafe在address位置上设置byte(1字节)数据
     public static void putByte(long address, byte value) {
         PlatformDependent0.putByte(address, value);
     }
 
+    // 使用unsafe在address位置上设置short(2字节)数据
     public static void putShort(long address, short value) {
         PlatformDependent0.putShort(address, value);
     }
 
+    // 使用unsafe在address位置上设置int(4字节)数据
     public static void putInt(long address, int value) {
         PlatformDependent0.putInt(address, value);
     }
 
+    // 使用unsafe在address位置上设置long(8字节)数据
     public static void putLong(long address, long value) {
         PlatformDependent0.putLong(address, value);
     }
 
+    // 使用unsafe在index位置上设置byte(1字节)类型数组数据
     public static void putByte(byte[] data, int index, byte value) {
         PlatformDependent0.putByte(data, index, value);
     }
 
+    // 使用unsafe在index位置上设置short(2字节)类型数组数据
     public static void putShort(byte[] data, int index, short value) {
         PlatformDependent0.putShort(data, index, value);
     }
 
+    // 使用unsafe在index位置上设置int(4字节)类型数组数据
     public static void putInt(byte[] data, int index, int value) {
         PlatformDependent0.putInt(data, index, value);
     }
 
+    // 使用unsafe在index位置上设置long(8字节)类型数组数据
     public static void putLong(byte[] data, int index, long value) {
         PlatformDependent0.putLong(data, index, value);
     }
 
+    // 使用unsafe从源地址srcAddr复制进行length长度的数据存入srcAddr地址中
     public static void copyMemory(long srcAddr, long dstAddr, long length) {
         PlatformDependent0.copyMemory(srcAddr, dstAddr, length);
     }
 
+    // 使用unsafe从源地址srcAddr复制进行length长度的数据存入src字节数组以srcindex为开始位置的字节数组中
     public static void copyMemory(byte[] src, int srcIndex, long dstAddr, long length) {
         PlatformDependent0.copyMemory(src, ARRAY_BASE_OFFSET + srcIndex, null, dstAddr, length);
     }
@@ -472,10 +548,12 @@ public final class PlatformDependent {
         PlatformDependent0.copyMemory(null, srcAddr, dst, ARRAY_BASE_OFFSET + dstIndex, length);
     }
 
+    // 设置内存地址数据
     public static void setMemory(byte[] dst, int dstIndex, long bytes, byte value) {
         PlatformDependent0.setMemory(dst, ARRAY_BASE_OFFSET + dstIndex, bytes, value);
     }
 
+    // 设置内存地址数据
     public static void setMemory(long address, long bytes, byte value) {
         PlatformDependent0.setMemory(address, bytes, value);
     }
@@ -484,11 +562,13 @@ public final class PlatformDependent {
      * Allocate a new {@link ByteBuffer} with the given {@code capacity}. {@link ByteBuffer}s allocated with
      * this method <strong>MUST</strong> be deallocated via {@link #freeDirectNoCleaner(ByteBuffer)}.
      */
+    // 创建DirectByteBuffer对象
     public static ByteBuffer allocateDirectNoCleaner(int capacity) {
         assert USE_DIRECT_BUFFER_NO_CLEANER;
 
         incrementMemoryCounter(capacity);
         try {
+        	// 创建DirectByteBuffer对象
             return PlatformDependent0.allocateDirectNoCleaner(capacity);
         } catch (Throwable e) {
             decrementMemoryCounter(capacity);
@@ -501,12 +581,15 @@ public final class PlatformDependent {
      * Reallocate a new {@link ByteBuffer} with the given {@code capacity}. {@link ByteBuffer}s reallocated with
      * this method <strong>MUST</strong> be deallocated via {@link #freeDirectNoCleaner(ByteBuffer)}.
      */
+    // 为DirectByteBuffer重新分配内存
     public static ByteBuffer reallocateDirectNoCleaner(ByteBuffer buffer, int capacity) {
         assert USE_DIRECT_BUFFER_NO_CLEANER;
 
+        // 查看增量
         int len = capacity - buffer.capacity();
         incrementMemoryCounter(len);
         try {
+        	// 重新分配内存
             return PlatformDependent0.reallocateDirectNoCleaner(buffer, capacity);
         } catch (Throwable e) {
             decrementMemoryCounter(len);
@@ -519,6 +602,7 @@ public final class PlatformDependent {
      * This method <strong>MUST</strong> only be called for {@link ByteBuffer}s that were allocated via
      * {@link #allocateDirectNoCleaner(int)}.
      */
+    // 释放DirectByteBuffer对象内存
     public static void freeDirectNoCleaner(ByteBuffer buffer) {
         assert USE_DIRECT_BUFFER_NO_CLEANER;
 
@@ -527,15 +611,19 @@ public final class PlatformDependent {
         decrementMemoryCounter(capacity);
     }
 
+    // 递增已使用directByteBuffer对象所允许的内存
     private static void incrementMemoryCounter(int capacity) {
         if (DIRECT_MEMORY_COUNTER != null) {
             for (;;) {
+            	// 获取已使用内存
                 long usedMemory = DIRECT_MEMORY_COUNTER.get();
                 long newUsedMemory = usedMemory + capacity;
                 if (newUsedMemory > DIRECT_MEMORY_LIMIT) {
+                	// 当超出最大内存时,抛出OutOfDirectMemoryError异常
                     throw new OutOfDirectMemoryError("failed to allocate " + capacity
                             + " byte(s) of direct memory (used: " + usedMemory + ", max: " + DIRECT_MEMORY_LIMIT + ')');
                 }
+                // CAS设置值
                 if (DIRECT_MEMORY_COUNTER.compareAndSet(usedMemory, newUsedMemory)) {
                     break;
                 }
@@ -543,6 +631,7 @@ public final class PlatformDependent {
         }
     }
 
+    // 递减已使用内存总数
     private static void decrementMemoryCounter(int capacity) {
         if (DIRECT_MEMORY_COUNTER != null) {
             long usedMemory = DIRECT_MEMORY_COUNTER.addAndGet(-capacity);
@@ -633,6 +722,7 @@ public final class PlatformDependent {
      * Create a new {@link Queue} which is safe to use for single producer (one thread!) and a single
      * consumer (one thread!).
      */
+    // 获取SpscLinkedQueue对象
     public static <T> Queue<T> newSpscQueue() {
         return hasUnsafe() ? new SpscLinkedQueue<T>() : new SpscLinkedAtomicQueue<T>();
     }
@@ -641,6 +731,7 @@ public final class PlatformDependent {
      * Create a new {@link Queue} which is safe to use for multiple producers (different threads) and a single
      * consumer (one thread!) with the given fixes {@code capacity}.
      */
+    // 获取MpscArrayQueue对象
     public static <T> Queue<T> newFixedMpscQueue(int capacity) {
         return hasUnsafe() ? new MpscArrayQueue<T>(capacity) : new MpscAtomicArrayQueue<T>(capacity);
     }
@@ -648,6 +739,7 @@ public final class PlatformDependent {
     /**
      * Return the {@link ClassLoader} for the given {@link Class}.
      */
+    // 获取某个类的类加载器
     public static ClassLoader getClassLoader(final Class<?> clazz) {
         return PlatformDependent0.getClassLoader(clazz);
     }
@@ -655,6 +747,7 @@ public final class PlatformDependent {
     /**
      * Return the context {@link ClassLoader} for the current {@link Thread}.
      */
+    // 获取线程上下文类加载器
     public static ClassLoader getContextClassLoader() {
         return PlatformDependent0.getContextClassLoader();
     }
@@ -662,6 +755,7 @@ public final class PlatformDependent {
     /**
      * Return the system {@link ClassLoader}.
      */
+    // 获取系统类加载器
     public static ClassLoader getSystemClassLoader() {
         return PlatformDependent0.getSystemClassLoader();
     }
@@ -669,6 +763,7 @@ public final class PlatformDependent {
     /**
      * Returns a new concurrent {@link Deque}.
      */
+    // 获取队列
     public static <C> Deque<C> newConcurrentDeque() {
         if (javaVersion() < 7) {
             return new LinkedBlockingDeque<C>();
@@ -680,10 +775,12 @@ public final class PlatformDependent {
     /**
      * Return a {@link Random} which is not-threadsafe and so can only be used from the same thread.
      */
+    // 获取随机数(线程不安全)
     public static Random threadLocalRandom() {
         return RANDOM_PROVIDER.current();
     }
 
+    // 判断是否为windows系统
     private static boolean isWindows0() {
         boolean windows = SystemPropertyUtil.get("os.name", "").toLowerCase(Locale.US).contains("win");
         if (windows) {
@@ -692,6 +789,7 @@ public final class PlatformDependent {
         return windows;
     }
 
+    // 判断是否为MacOS系统
     private static boolean isOsx0() {
         String osname = SystemPropertyUtil.get("os.name", "").toLowerCase(Locale.US)
                 .replaceAll("[^a-z0-9]+", "");
@@ -703,7 +801,9 @@ public final class PlatformDependent {
         return osx;
     }
 
+    // 判断是否为超级用户
     private static boolean maybeSuperUser0() {
+    	// 获取系统属性
         String username = SystemPropertyUtil.get("user.name");
         if (isWindows()) {
             return "Administrator".equals(username);
@@ -713,16 +813,19 @@ public final class PlatformDependent {
     }
 
     private static boolean hasUnsafe0() {
+    	// 判断是否为安卓系统 = false
         if (isAndroid()) {
             logger.debug("sun.misc.Unsafe: unavailable (Android)");
             return false;
         }
 
+        // 用户拒绝使用Unsafe类
         if (PlatformDependent0.isExplicitNoUnsafe()) {
             return false;
         }
 
         try {
+        	// 查看平台是否支持UnSafe类
             boolean hasUnsafe = PlatformDependent0.hasUnsafe();
             logger.debug("sun.misc.Unsafe: {}", hasUnsafe ? "available" : "unavailable");
             return hasUnsafe;
@@ -733,6 +836,7 @@ public final class PlatformDependent {
         }
     }
 
+    // 获取数组偏移量
     private static long arrayBaseOffset0() {
         if (!hasUnsafe()) {
             return -1;
@@ -741,7 +845,9 @@ public final class PlatformDependent {
         return PlatformDependent0.arrayBaseOffset();
     }
 
+    // 获取maxDirectMemory值
     private static long maxDirectMemory0() {
+    	
         long maxDirectMemory = 0;
         ClassLoader systemClassLoader = null;
         try {
@@ -749,6 +855,7 @@ public final class PlatformDependent {
             systemClassLoader = getSystemClassLoader();
             Class<?> vmClass = Class.forName("sun.misc.VM", true, systemClassLoader);
             Method m = vmClass.getDeclaredMethod("maxDirectMemory");
+            // 调用sun.misc.VM中的maxDirectMemory方法
             maxDirectMemory = ((Number) m.invoke(null)).longValue();
         } catch (Throwable ignored) {
             // Ignore
@@ -766,26 +873,31 @@ public final class PlatformDependent {
             Class<?> runtimeClass = Class.forName(
                     "java.lang.management.RuntimeMXBean", true, systemClassLoader);
 
+            // 调用java.lang.management.ManagementFactory中的getRuntimeMXBean方法
             Object runtime = mgmtFactoryClass.getDeclaredMethod("getRuntimeMXBean").invoke(null);
 
+            
+            // RuntimeMXBean.getInputArguments方法
             @SuppressWarnings("unchecked")
             List<String> vmArgs = (List<String>) runtimeClass.getDeclaredMethod("getInputArguments").invoke(runtime);
             for (int i = vmArgs.size() - 1; i >= 0; i --) {
+            	// 匹配正则表达式
                 Matcher m = MAX_DIRECT_MEMORY_SIZE_ARG_PATTERN.matcher(vmArgs.get(i));
                 if (!m.matches()) {
                     continue;
                 }
 
+                // 获取值对象
                 maxDirectMemory = Long.parseLong(m.group(1));
-                switch (m.group(2).charAt(0)) {
+                switch (m.group(2).charAt(0)) { // 单位
                     case 'k': case 'K':
-                        maxDirectMemory *= 1024;
+                        maxDirectMemory *= 1024; // K
                         break;
                     case 'm': case 'M':
-                        maxDirectMemory *= 1024 * 1024;
+                        maxDirectMemory *= 1024 * 1024; // M
                         break;
                     case 'g': case 'G':
-                        maxDirectMemory *= 1024 * 1024 * 1024;
+                        maxDirectMemory *= 1024 * 1024 * 1024; // G
                         break;
                 }
                 break;
@@ -795,6 +907,7 @@ public final class PlatformDependent {
         }
 
         if (maxDirectMemory <= 0) {
+        	// 调用maxMemory()方法
             maxDirectMemory = Runtime.getRuntime().maxMemory();
             logger.debug("maxDirectMemory: {} bytes (maybe)", maxDirectMemory);
         } else {
@@ -807,12 +920,14 @@ public final class PlatformDependent {
     private static File tmpdir0() {
         File f;
         try {
+        	// 获取用户参数io.netty.tmpdir
             f = toDirectory(SystemPropertyUtil.get("io.netty.tmpdir"));
             if (f != null) {
                 logger.debug("-Dio.netty.tmpdir: {}", f);
                 return f;
             }
 
+            // 获取系统参数java.io.tmpdir
             f = toDirectory(SystemPropertyUtil.get("java.io.tmpdir"));
             if (f != null) {
                 logger.debug("-Dio.netty.tmpdir: {} (java.io.tmpdir)", f);
@@ -863,6 +978,7 @@ public final class PlatformDependent {
         return f;
     }
 
+    // 获取目录的绝对路径
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private static File toDirectory(String path) {
         if (path == null) {
@@ -872,11 +988,13 @@ public final class PlatformDependent {
         File f = new File(path);
         f.mkdirs();
 
+        // 如果不是目录的话,直接就返回
         if (!f.isDirectory()) {
             return null;
         }
 
         try {
+        	// 获取文件的绝对路径
             return f.getAbsoluteFile();
         } catch (Exception ignored) {
             return f;
@@ -885,6 +1003,7 @@ public final class PlatformDependent {
 
     private static int bitMode0() {
         // Check user-specified bit mode first.
+    	// 用户参数io.netty.bitMode,默认为0
         int bitMode = SystemPropertyUtil.getInt("io.netty.bitMode", 0);
         if (bitMode > 0) {
             logger.debug("-Dio.netty.bitMode: {}", bitMode);
@@ -892,11 +1011,13 @@ public final class PlatformDependent {
         }
 
         // And then the vendor specific ones which is probably most reliable.
+        // 获取系统参数sun.arch.data.model,默认为0
         bitMode = SystemPropertyUtil.getInt("sun.arch.data.model", 0);
         if (bitMode > 0) {
             logger.debug("-Dio.netty.bitMode: {} (sun.arch.data.model)", bitMode);
             return bitMode;
         }
+        // 获取系统参数com.ibm.vm.bitmode,默认为0
         bitMode = SystemPropertyUtil.getInt("com.ibm.vm.bitmode", 0);
         if (bitMode > 0) {
             logger.debug("-Dio.netty.bitMode: {} (com.ibm.vm.bitmode)", bitMode);
@@ -904,6 +1025,7 @@ public final class PlatformDependent {
         }
 
         // os.arch also gives us a good hint.
+        // 获取系统属性os.arch
         String arch = SystemPropertyUtil.get("os.arch", "").toLowerCase(Locale.US).trim();
         if ("amd64".equals(arch) || "x86_64".equals(arch)) {
             bitMode = 64;
@@ -916,8 +1038,10 @@ public final class PlatformDependent {
         }
 
         // Last resort: guess from VM name and then fall back to most common 64-bit mode.
+        // 获取系统属性java.vm.name
         String vm = SystemPropertyUtil.get("java.vm.name", "").toLowerCase(Locale.US);
         Pattern BIT_PATTERN = Pattern.compile("([1-9][0-9]+)-?bit");
+        // 正则表达式匹配
         Matcher m = BIT_PATTERN.matcher(vm);
         if (m.find()) {
             return Integer.parseInt(m.group(1));
@@ -926,6 +1050,7 @@ public final class PlatformDependent {
         }
     }
 
+    // 获取内存地址大小
     private static int addressSize0() {
         if (!hasUnsafe()) {
             return -1;
@@ -943,10 +1068,12 @@ public final class PlatformDependent {
         return true;
     }
 
+    // 获取处理器内核CPU型号
     public static String normalizedArch() {
         return NORMALIZED_ARCH;
     }
 
+    // 获取操作系统类型
     public static String normalizedOs() {
         return NORMALIZED_OS;
     }
@@ -955,6 +1082,7 @@ public final class PlatformDependent {
         return value.toLowerCase(Locale.US).replaceAll("[^a-z0-9]+", "");
     }
 
+    // 获取处理器内核CPU型号
     private static String normalizeArch(String value) {
         value = normalize(value);
         if (value.matches("^(x8664|amd64|ia32e|em64t|x64)$")) {
@@ -997,6 +1125,7 @@ public final class PlatformDependent {
         return "unknown";
     }
 
+    // 获取操作系统类型
     private static String normalizeOs(String value) {
         value = normalize(value);
         if (value.startsWith("aix")) {
@@ -1036,25 +1165,26 @@ public final class PlatformDependent {
         return "unknown";
     }
 
+    // 原子类计数器
     private static final class AtomicLongCounter extends AtomicLong implements LongCounter {
         @Override
         public void add(long delta) {
-            addAndGet(delta);
+            addAndGet(delta); // + and get
         }
 
         @Override
         public void increment() {
-            incrementAndGet();
+            incrementAndGet(); // ++ and get
         }
 
         @Override
         public void decrement() {
-            decrementAndGet();
+            decrementAndGet(); // -- and get
         }
 
         @Override
         public long value() {
-            return get();
+            return get(); // get
         }
     }
 

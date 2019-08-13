@@ -35,6 +35,7 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  */
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
+	
 	// 用于UnpooledHeapByteBuf的内存分配
     private final ByteBufAllocator alloc;
     // byte数组作为缓冲区
@@ -74,7 +75,8 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
      */
     protected UnpooledHeapByteBuf(ByteBufAllocator alloc, byte[] initialArray, int maxCapacity) {
         super(maxCapacity);
-
+        
+        // 判断输入参数是否为空
         checkNotNull(alloc, "alloc");
         checkNotNull(initialArray, "initialArray");
 
@@ -107,12 +109,12 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         tmpNioBuf = null;
     }
 
-    @Override
+    @Override// 返回内存分配器
     public ByteBufAllocator alloc() {
         return alloc;
     }
 
-    @Override
+    @Override// 返回内存插入的顺序
     public ByteOrder order() {
         return ByteOrder.BIG_ENDIAN;
     }
@@ -122,13 +124,13 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return false;
     }
 
-    @Override// 返回数组大小
+    @Override// 返回数组大小(容量)
     public int capacity() {
         ensureAccessible();
         return array.length;
     }
 
-    @Override
+    @Override// 扩容时(设置capacity)
     public ByteBuf capacity(int newCapacity) {
     	// 检验newCapacity合法性
         checkNewCapacity(newCapacity);
@@ -182,23 +184,23 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return 0;
     }
 
-    @Override
+    @Override// 判断是否存在内存地址
     public boolean hasMemoryAddress() {
         return false;
     }
 
-    @Override // 抛出异常
+    @Override // 抛出UnsupportedOperationException异常
     public long memoryAddress() {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    @Override// 将该ByteBuf对象中指定区间的数据存入至ByteBuf对象中
     public ByteBuf getBytes(int index, ByteBuf dst, int dstIndex, int length) {
         checkDstIndex(index, length, dstIndex, dst.capacity());
-        if (dst.hasMemoryAddress()) {
+        if (dst.hasMemoryAddress()) { // direct
         	// 内存复制复制
             PlatformDependent.copyMemory(array, index, dst.memoryAddress() + dstIndex, length);
-        } else if (dst.hasArray()) {
+        } else if (dst.hasArray()) { // heap
         	// 调用System.arraycopy()方法
             getBytes(index, dst.array(), dst.arrayOffset() + dstIndex, length);
         } else {
@@ -222,14 +224,14 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 将指定区间中的数据存入dst中
     public ByteBuf getBytes(int index, ByteBuffer dst) {
         checkIndex(index, dst.remaining());
         dst.put(array, index, dst.remaining());
         return this;
     }
 
-    @Override
+    @Override // 将array中的指定区间数据存入OutputStream对象中
     public ByteBuf getBytes(int index, OutputStream out, int length) throws IOException {
         ensureAccessible();
         // 将array写入OutputStream中
@@ -237,15 +239,17 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return this;
     }
 
-    @Override
+    @Override // 将从index为开始位置的长度为length的数据写入到 GatheringByteChannel中
     public int getBytes(int index, GatheringByteChannel out, int length) throws IOException {
         ensureAccessible();
         return getBytes(index, out, length, false);
     }
 
+    // 将从index为开始位置的长度为length的数据写入到 GatheringByteChannel中
     private int getBytes(int index, GatheringByteChannel out, int length, boolean internal) throws IOException {
         ensureAccessible();
         ByteBuffer tmpBuf;
+        // 创建ByteBuffer对象
         if (internal) {
             tmpBuf = internalNioBuffer();
         } else {
@@ -255,7 +259,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return out.write((ByteBuffer) tmpBuf.clear().position(index).limit(index + length));
     }
 
-    @Override
+    @Override // 将该ByteBuf对象中的length长度数据写入到GatheringByteChannel中
     public int readBytes(GatheringByteChannel out, int length) throws IOException {
     	// 可读字节数检验
         checkReadableBytes(length);
@@ -265,7 +269,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return readBytes;
     }
 
-    @Override
+    @Override// 将该ByteBuf对象中以index开头的长度为length的数据写入到src(ByteBuf)对象中
     public ByteBuf setBytes(int index, ByteBuf src, int srcIndex, int length) {
         checkSrcIndex(index, length, srcIndex, src.capacity());
         if (src.hasMemoryAddress()) {
@@ -279,7 +283,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 将array数组中的数据写入到src数组中
     public ByteBuf setBytes(int index, byte[] src, int srcIndex, int length) {
     	// 检验输入字段是否正确
         checkSrcIndex(index, length, srcIndex, src.length);
@@ -296,14 +300,14 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return this;
     }
 
-    @Override
+    @Override// 从in(InputStream)中读取长度为length的数据写入到该ByteBuf对象中
     public int setBytes(int index, InputStream in, int length) throws IOException {
         ensureAccessible();
         // 从输入流InputStream中复制字节数组至array中去
         return in.read(array, index, length);
     }
 
-    @Override
+    @Override// 从in(ScatteringByteChannel)中读取长度为length的数据写入到该ByteBuf对象中
     public int setBytes(int index, ScatteringByteChannel in, int length) throws IOException {
         ensureAccessible();
         try {
@@ -336,7 +340,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 
-    @Override
+    @Override// 获取指定index上的byte数据(1字节)
     public byte getByte(int index) {
         ensureAccessible();
         return _getByte(index);
@@ -348,7 +352,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return HeapByteBufUtil.getByte(array, index);
     }
 
-    @Override
+    @Override// 获取指定index上的short数据(2字节)
     public short getShort(int index) {
         ensureAccessible();
         return _getShort(index);
@@ -360,7 +364,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return HeapByteBufUtil.getShort(array, index);
     }
 
-    @Override
+    @Override// 获取指定index上的medium数据(3字节)
     public int getUnsignedMedium(int index) {
         ensureAccessible();
         return _getUnsignedMedium(index);
@@ -371,7 +375,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return HeapByteBufUtil.getUnsignedMedium(array, index);
     }
 
-    @Override
+    @Override// 获取指定index上的int数据(4字节)
     public int getInt(int index) {
         ensureAccessible();
         return _getInt(index);
@@ -383,7 +387,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return HeapByteBufUtil.getInt(array, index);
     }
 
-    @Override
+    @Override// 获取指定index上的long数据(8字节)
     public long getLong(int index) {
         ensureAccessible();
         return _getLong(index);
@@ -395,7 +399,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         return HeapByteBufUtil.getLong(array, index);
     }
 
-    @Override
+    @Override // 设置指定index上的byte数据(1字节)
     public ByteBuf setByte(int index, int value) {
         ensureAccessible();
         _setByte(index, value);
@@ -408,7 +412,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         HeapByteBufUtil.setByte(array, index, value);
     }
 
-    @Override
+    @Override// 设置指定index上的short数据(2字节)
     public ByteBuf setShort(int index, int value) {
         ensureAccessible();
         _setShort(index, value);
@@ -420,7 +424,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         HeapByteBufUtil.setShort(array, index, value);
     }
 
-    @Override
+    @Override// 设置指定index上的medium数据(3字节)
     public ByteBuf setMedium(int index, int   value) {
         ensureAccessible();
         _setMedium(index, value);
@@ -432,7 +436,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         HeapByteBufUtil.setMedium(array, index, value);
     }
 
-    @Override
+    @Override// 设置指定index上的int数据(4字节)
     public ByteBuf setInt(int index, int   value) {
         ensureAccessible();
         _setInt(index, value);
@@ -444,7 +448,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         HeapByteBufUtil.setInt(array, index, value);
     }
 
-    @Override
+    @Override// 设置指定index上的long数据(8字节)
     public ByteBuf setLong(int index, long  value) {
         ensureAccessible();
         _setLong(index, value);
@@ -462,9 +466,11 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         byte[] copiedArray = new byte[length];
         // 内存复制函数
         System.arraycopy(array, index, copiedArray, 0, length);
+        // 创建UnpooledHeapByteBuf对象
         return new UnpooledHeapByteBuf(alloc(), copiedArray, maxCapacity());
     }
 
+    // 创建ByteBuffer对象
     private ByteBuffer internalNioBuffer() {
         ByteBuffer tmpNioBuf = this.tmpNioBuf;
         if (tmpNioBuf == null) {

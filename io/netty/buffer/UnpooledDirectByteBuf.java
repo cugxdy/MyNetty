@@ -37,6 +37,8 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     private ByteBuffer buffer;
     private ByteBuffer tmpNioBuf;
+    
+    // ByteBuf对象容量
     private int capacity;
     private boolean doNotFree;
 
@@ -46,8 +48,10 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
      * @param initialCapacity the initial capacity of the underlying direct buffer
      * @param maxCapacity     the maximum capacity of the underlying direct buffer
      */
+    // 创建UnpooledDirectByteBuf对象
     public UnpooledDirectByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
         super(maxCapacity);
+        // 校验输入参数的合法性
         if (alloc == null) {
             throw new NullPointerException("alloc");
         }
@@ -63,6 +67,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         }
 
         this.alloc = alloc;
+        // 设置ByteBuffer对象
         setByteBuffer(ByteBuffer.allocateDirect(initialCapacity));
     }
 
@@ -71,6 +76,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
      *
      * @param maxCapacity the maximum capacity of the underlying direct buffer
      */
+    // 创建UnpooledDirectByteBuf对象
     protected UnpooledDirectByteBuf(ByteBufAllocator alloc, ByteBuffer initialBuffer, int maxCapacity) {
         super(maxCapacity);
         if (alloc == null) {
@@ -94,13 +100,16 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
         this.alloc = alloc;
         doNotFree = true;
+        // 设置ByteBuffer对象
         setByteBuffer(initialBuffer.slice().order(ByteOrder.BIG_ENDIAN));
+        // 设置写索引
         writerIndex(initialCapacity);
     }
 
     /**
      * Allocate a new direct {@link ByteBuffer} with the given initialCapacity.
      */
+    // 创建基于堆外内存的ByteBuffer对象
     protected ByteBuffer allocateDirect(int initialCapacity) {
         return ByteBuffer.allocateDirect(initialCapacity);
     }
@@ -108,10 +117,12 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
     /**
      * Free a direct {@link ByteBuffer}
      */
+    // 释放堆外内存ByteBuffer对象
     protected void freeDirect(ByteBuffer buffer) {
         PlatformDependent.freeDirectBuffer(buffer);
     }
 
+    // 设置ByteBuffer对象
     private void setByteBuffer(ByteBuffer buffer) {
         ByteBuffer oldBuffer = this.buffer;
         if (oldBuffer != null) {
@@ -124,23 +135,25 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
         this.buffer = buffer;
         tmpNioBuf = null;
+        // 设置容量
         capacity = buffer.remaining();
     }
 
-    @Override
+    @Override // 是否基于堆外内存
     public boolean isDirect() {
         return true;
     }
 
-    @Override
+    @Override // 返回当前容量
     public int capacity() {
         return capacity;
     }
 
-    @Override
+    @Override // 设置新容量
     public ByteBuf capacity(int newCapacity) {
         checkNewCapacity(newCapacity);
 
+        // 获取读写索引
         int readerIndex = readerIndex();
         int writerIndex = writerIndex();
 
@@ -148,20 +161,26 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         if (newCapacity > oldCapacity) {
             ByteBuffer oldBuffer = buffer;
             ByteBuffer newBuffer = allocateDirect(newCapacity);
+            // 设置position、limit属性值
             oldBuffer.position(0).limit(oldBuffer.capacity());
             newBuffer.position(0).limit(oldBuffer.capacity());
             newBuffer.put(oldBuffer);
+            // 将position = 0 , limit = capacity属性
             newBuffer.clear();
+            // 设置ByteBuffer对象
             setByteBuffer(newBuffer);
         } else if (newCapacity < oldCapacity) {
             ByteBuffer oldBuffer = buffer;
             ByteBuffer newBuffer = allocateDirect(newCapacity);
             if (readerIndex < newCapacity) {
+            	// 获取写索引
                 if (writerIndex > newCapacity) {
                     writerIndex(writerIndex = newCapacity);
                 }
+                // 设置读写索引
                 oldBuffer.position(readerIndex).limit(writerIndex);
                 newBuffer.position(readerIndex).limit(writerIndex);
+                // 设置ByteBuffer对象
                 newBuffer.put(oldBuffer);
                 newBuffer.clear();
             } else {
@@ -172,7 +191,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return this;
     }
 
-    @Override
+    @Override // 返回内存分配器
     public ByteBufAllocator alloc() {
         return alloc;
     }
@@ -187,12 +206,12 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return false;
     }
 
-    @Override
+    @Override // 抛出UnsupportedOperationException异常
     public byte[] array() {
         throw new UnsupportedOperationException("direct buffer");
     }
 
-    @Override
+    @Override // 抛出UnsupportedOperationException异常
     public int arrayOffset() {
         throw new UnsupportedOperationException("direct buffer");
     }
@@ -207,7 +226,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         throw new UnsupportedOperationException();
     }
 
-    @Override
+    @Override // 获取指定index上的byte数据(1字节)
     public byte getByte(int index) {
         ensureAccessible();
         return _getByte(index);
@@ -218,7 +237,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return buffer.get(index);
     }
 
-    @Override
+    @Override // 获取指定index上的short数据(2字节)
     public short getShort(int index) {
         ensureAccessible();
         return _getShort(index);
@@ -229,7 +248,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return buffer.getShort(index);
     }
 
-    @Override
+    @Override // 获取指定index上的medium数据(3字节)
     public int getUnsignedMedium(int index) {
         ensureAccessible();
         return _getUnsignedMedium(index);
@@ -240,7 +259,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return (getByte(index) & 0xff) << 16 | (getByte(index + 1) & 0xff) << 8 | getByte(index + 2) & 0xff;
     }
 
-    @Override
+    @Override // 获取指定index上的int数据(4字节)
     public int getInt(int index) {
         ensureAccessible();
         return _getInt(index);
@@ -251,7 +270,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return buffer.getInt(index);
     }
 
-    @Override
+    @Override // 获取指定index上的long数据(8字节)
     public long getLong(int index) {
         ensureAccessible();
         return _getLong(index);
@@ -474,6 +493,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return getBytes(index, out, length, false);
     }
 
+    // 将从ByteBuffer对象中读取length长度的数据写入到(GatheringByteChannel)对象中
     private int getBytes(int index, GatheringByteChannel out, int length, boolean internal) throws IOException {
         ensureAccessible();
         if (length == 0) {
@@ -490,7 +510,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return out.write(tmpBuf);
     }
 
-    @Override
+    @Override// 从ScatteringByteChannel中读取length长度的数据
     public int readBytes(GatheringByteChannel out, int length) throws IOException {
         checkReadableBytes(length);
         int readBytes = getBytes(readerIndex, out, length, true);
@@ -498,28 +518,31 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return readBytes;
     }
 
-    @Override
+    @Override // 将从in(InputStream)中读取长度为length的数据写入到该ByteBuffer对象中
     public int setBytes(int index, InputStream in, int length) throws IOException {
         ensureAccessible();
         if (buffer.hasArray()) {
             return in.read(buffer.array(), buffer.arrayOffset() + index, length);
         } else {
             byte[] tmp = new byte[length];
+            // 从inputStream中读取字节数组
             int readBytes = in.read(tmp);
             if (readBytes <= 0) {
                 return readBytes;
             }
             ByteBuffer tmpBuf = internalNioBuffer();
             tmpBuf.clear().position(index);
+            // 将字节数组存入到ByteBuffer对象中
             tmpBuf.put(tmp, 0, readBytes);
             return readBytes;
         }
     }
 
-    @Override
+    @Override// 从ScatteringByteChannel中读取length长度的数据
     public int setBytes(int index, ScatteringByteChannel in, int length) throws IOException {
         ensureAccessible();
         ByteBuffer tmpBuf = internalNioBuffer();
+        // 设置position、limit属性值
         tmpBuf.clear().position(index).limit(index + length);
         try {
             return in.read(tmpNioBuf);
@@ -538,11 +561,12 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return new ByteBuffer[] { nioBuffer(index, length) };
     }
 
-    @Override
+    @Override // 创建全新的ByteBuf对象
     public ByteBuf copy(int index, int length) {
         ensureAccessible();
         ByteBuffer src;
         try {
+        	// copy ByteBuffer对象并设置position、limit对象
             src = (ByteBuffer) buffer.duplicate().clear().position(index).limit(index + length);
         } catch (IllegalArgumentException ignored) {
             throw new IndexOutOfBoundsException("Too many bytes to read - Need " + (index + length));
@@ -551,12 +575,13 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return alloc().directBuffer(length, maxCapacity()).writeBytes(src);
     }
 
-    @Override
+    @Override// 创建ByteBuffer对象并设置position、limit属性值
     public ByteBuffer internalNioBuffer(int index, int length) {
         checkIndex(index, length);
         return (ByteBuffer) internalNioBuffer().clear().position(index).limit(index + length);
     }
 
+    // 基于buffer创建共享ByteBuffer对象
     private ByteBuffer internalNioBuffer() {
         ByteBuffer tmpNioBuf = this.tmpNioBuf;
         if (tmpNioBuf == null) {
@@ -565,13 +590,13 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
         return tmpNioBuf;
     }
 
-    @Override
+    @Override// 返回ByteBuffer对象
     public ByteBuffer nioBuffer(int index, int length) {
         checkIndex(index, length);
         return ((ByteBuffer) buffer.duplicate().position(index).limit(index + length)).slice();
     }
 
-    @Override
+    @Override // 释放ByteBuffer对象
     protected void deallocate() {
         ByteBuffer buffer = this.buffer;
         if (buffer == null) {
