@@ -5,3 +5,4 @@
 4、FastThreadLocalThread 优化线程获取线程本地变量</br>
 5、netty DefaultPomise中notifyListeners中监听栈的设计</br>
 6、netty 中ResourceLeakDetector类对引用计数释放机制
+7、netty 中NioEventLoop中wakeup属性作用。
